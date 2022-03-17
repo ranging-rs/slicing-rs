@@ -1,2 +1,2 @@
-# abstra
-Abstracted collections in Rust
+# ranging 
+Abstracted range-based collections in Rust

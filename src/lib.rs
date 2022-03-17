@@ -2,82 +2,28 @@
 #![feature(generic_associated_types)]
 #![feature(associated_type_bounds)]
 
-pub mod map;
-pub mod set;
+pub mod bool_array;
+pub mod bool_slice;
+mod set;
+mod slices;
+
+/// TODO why doesn't the following activate?
+//#[cfg(not(no_std))]
+//#[cfg(not(feature = "no_std"))]
+// something-to-conditionally-compile
+pub mod hash;
+
+pub use set::*;
+pub use slices::*;
 
 use core::fmt::{self};
 use core::ops::{Add, Sub};
-
-#[derive(Debug)]
-pub enum Slice<'a, T: 'a> {
-    Shared(&'a [T]),
-    Mutable(&'a mut [T]),
-    #[cfg(not(no_std))]
-    Vec(Vec<T>),
-}
-
-impl<'s, T: 's> Slice<'s, T> {
-    #[inline]
-    pub fn shared_slice<'a>(&'a self) -> &'a [T] {
-        match &self {
-            Slice::Shared(slice) => slice,
-            Slice::Mutable(slice) => slice,
-            #[cfg(not(no_std))]
-            Slice::Vec(vec) => vec,
-        }
-    }
-
-    #[inline]
-    pub fn mutable_slice<'a>(&'a mut self) -> &'a mut [T] {
-        match self {
-            Slice::Shared(_) => {
-                unreachable!("Can't get a mutable slice from a shared slice.")
-            },
-            Slice::Mutable(slice) => slice,
-            #[cfg(not(no_std))]
-            Slice::Vec(vec) => vec,
-        }
-    }
-}
-
-pub type BoolSlice<'a> = Slice<'a, bool>;
-pub type ByteSlice<'a> = Slice<'a, u8>;
 
 #[allow(unused)]
 #[cfg(test)]
 mod test {
     #[test]
-    fn f() {
-        let shared_num = [1, 2, 3];
-        let mut mut_num = [4, 5, 6];
-    }
-}
-
-/// Abstract set.
-pub trait Set<T: core::hash::Hash + Eq + Clone>: Clone {
-    // To use with non-cloneable, have:
-    // type ITER<'a>: Iterator<Item = &'a T>
-    // where
-    //     T: 'a,
-    //     Self: 'a;
-    // -- but then we can't have BoolSlice-based or any other value generation.
-    /// Thanks to Shadow0133 for https://www.reddit.com/r/rust/comments/t4egmf/lifetime_generic_associated_type_bounded_by_the
-    type ITER<'a>: Iterator<Item = T>
-    where
-        T: 'a,
-        Self: 'a;
-
-    fn contains(&self, value: &T) -> bool;
-    fn insert(&mut self, value: T) -> bool;
-    fn insert_all(&mut self, iter: impl Iterator<Item = T>) {
-        iter.for_each(|item| {
-            self.insert(item);
-        });
-    }
-    fn remove(&mut self, value: &T) -> bool;
-    fn iter<'a>(&'a self) -> Self::ITER<'a>;
-    /// Return a new empty set. For range/max size-bound sets it will have same constraints or capacity.
-    fn new_like(&self) -> Self;
+    fn f() {}
 }
 
 /// Handles transformations of an item to an index, and vice versa.
@@ -104,6 +50,7 @@ pub struct RangeIndexer<T: Clone> {
 /// Default implementation for primitive unsigned/signed integers.
 /// In nightly Rust as of early 2022, this works for `char`, too - `char` implements `Sub<char>`, even though that doesn't show up at https://doc.rust-lang.org/nightly/std/primitive.char.html.
 /// TODO make this compile conditionally: - errornous for 32 bit and bigger integers on 16bit platforms.
+/// TODO Remove Add<T>
 impl<T: Clone + Sub<T> + Add<T>> Indexer<T> for RangeIndexer<T>
 where
     T: TryInto<usize>,
@@ -149,10 +96,6 @@ impl Indexer<char> for RangeIndexer<char> {
         char::from_u32(self.start as usize + index).unwrap()
     }
 }*/
-
-fn test_char_range(indexer: &RangeIndexer<char>) {
-    let clone = indexer.clone();
-}
 
 /// TODO use?
 /// Implement only for types where any value has a valid (and unique) usize index.
