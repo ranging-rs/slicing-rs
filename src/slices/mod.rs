@@ -61,9 +61,9 @@ impl<'s, T: 's + Clone + Copy + Default, const N: usize> crate::abstra::NewLike
             Slice::Shared(_) | Slice::Mutable(_) => {
                 unimplemented!("Can't clone a slice.")
             }
-            Slice::Array(array) => Slice::Array([T::default(); N]),
+            Slice::Array(_) => Slice::Array([T::default(); N]),
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
-            Slice::Vec(vec) => Slice::Vec(if N > 0 {
+            Slice::Vec(_) => Slice::Vec(if N > 0 {
                 Vec::with_capacity(N)
             } else {
                 Vec::new()
