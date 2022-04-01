@@ -1,4 +1,5 @@
-use crate::{BoolSlice, ByteSlice, Indexer, RangeIndexer};
+use crate::{BoolSlice, ByteSlice,};
+use crate::index::{Indexer, RangeIndexer};
 use core::ops::{Add, Sub};
 use core::{fmt, marker::PhantomData};
 
