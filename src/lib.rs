@@ -2,13 +2,12 @@
 #![feature(generic_associated_types)]
 #![feature(associated_type_bounds)]
 
-pub mod bool_array;
 pub mod bool_slice;
 mod set;
 mod slices;
 
 pub mod abstra;
-#[cfg(not(feature = "no_std"))]
+#[cfg(all(not(feature = "no_std"), feature = "std"))]
 pub mod hash;
 pub mod index;
 
