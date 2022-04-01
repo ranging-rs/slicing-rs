@@ -17,7 +17,8 @@ impl<'s, T: Eq + Clone, I: Indexer<T>, const N: usize> Set<'s, T, I, N> {
     // A private helper.
     #[inline]
     fn shared_slice<'a>(&'a self) -> &'a [bool] {
-        self.slice.shared_slice()
+        //self.slice.shared_slice()
+        todo!()
     }
 }
 
@@ -27,8 +28,10 @@ impl<'s, T: Eq + Clone + Copy + Default, I: Indexer<T>, const N: usize> crate::S
     type ITER<'a>    = SetIter<'a, T, I> where T: 'a, Self: 'a;
 
     fn contains(&self, value: &T) -> bool {
+        // @TODO partially move to Slice::get()
         self.shared_slice()[self.indexer.index(value)]
     }
+    /// Return true if this value was not present yet. (Based on std::collections::HashSet.)
     fn insert(&mut self, value: T) -> bool {
         match &mut self.slice {
             BoolSlice::Mutable(slice) => {
@@ -40,6 +43,7 @@ impl<'s, T: Eq + Clone + Copy + Default, I: Indexer<T>, const N: usize> crate::S
             _ => unimplemented!("Based on a shared reference - read only."),
         }
     }
+    /// Return whether it was actually present.
     fn remove(&mut self, value: &T) -> bool {
         match &mut self.slice {
             BoolSlice::Mutable(slice) => {
@@ -48,9 +52,11 @@ impl<'s, T: Eq + Clone + Copy + Default, I: Indexer<T>, const N: usize> crate::S
                 slice[index] = false;
                 was_present
             }
+            // @TODO partially move to Slice::set()
             _ => unimplemented!("Based on a shared reference - read only."),
         }
     }
+    // @TODO partially move to Slice::iter()
     fn iter<'a>(&'a self) -> Self::ITER<'a> {
         SetIter {
             slice_enum: self.shared_slice().iter().enumerate(),
@@ -82,6 +88,7 @@ impl<'s, T: Eq + Clone, I: Indexer<T>, const N: usize> Clone for Set<'s, T, I, N
     }
 }
 
+// @TODO Remove if possible.
 #[derive(Clone)]
 pub struct SetIter<'a, T: Clone, I: Indexer<T>> {
     slice_enum: core::iter::Enumerate<core::slice::Iter<'a, bool>>,
