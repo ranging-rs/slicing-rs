@@ -21,11 +21,24 @@ impl<'s, T: 's> Slice<'s, T> {
     pub fn mutable_slice<'a>(&'a mut self) -> &'a mut [T] {
         match self {
             Slice::Shared(_) => {
-                unreachable!("Can't get a mutable slice from a shared slice.")
+                unimplemented!("Can't get a mutable slice from a shared slice.")
             }
             Slice::Mutable(slice) => slice,
             #[cfg(not(feature = "no_std"))]
             Slice::Vec(vec) => vec,
+        }
+    }
+}
+
+/// Implemented for Vec-backed slice only.
+impl<'s, T: 's + Clone> Clone for Slice<'s, T> {
+    fn clone(&self) -> Self {
+        match self {
+            Slice::Shared(_) | Slice::Mutable(_) => {
+                unimplemented!("Can't clone a slice.")
+            }
+            #[cfg(not(feature = "no_std"))]
+            Slice::Vec(vec) => Slice::Vec(vec.clone()),
         }
     }
 }

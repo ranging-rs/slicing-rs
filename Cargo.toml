@@ -10,5 +10,9 @@ no_std = []
 
 [dependencies]
 
-[workspace]
-members = ["tests/*"]
+# Do not have a test-based workspace. It upset both
+# - `cargo test --workspace` for tests/ok_std
+#    (even though `cargo test --package ok_std` worked fine), and
+# - Rust Analyzer for ranging crate itself.
+#[workspace]
+#members = ["tests/*"]

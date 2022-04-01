@@ -1,5 +1,4 @@
 #![cfg_attr(feature = "no_std", no_std)]
-
 #![feature(generic_associated_types)]
 #![feature(associated_type_bounds)]
 
@@ -28,9 +27,9 @@ mod test {
 /// A collection has an `Indexer` instance, but the `Indexer` implementation
 /// doesn't know anything about the size/capacity of the collection. So even
 /// though `Indexer`'s `key(...)` function may succeed, a particular collection
-/// impplementation, or a particular collection instance, may not be able to accept it.
+/// implementation, or a particular collection instance, may not be able to accept it.
 /// It requires `Clone`, so that collections can store `Indexer` instances themselves
-/// rather than references (to avoid CPU cache fragmentation).
+/// rather than references (to avoid CPU cache fragmentation & ownership handling).
 pub trait Indexer<T: Clone>: Clone {
     /// 0-based index, but specific to collection(s) indexed by this `Indexer` instance. That may be shifted from `RangeIndexable::index()`.
     fn index(&self, key: &T) -> usize;
@@ -47,9 +46,7 @@ pub struct RangeIndexer<T: Clone> {
 }
 /// Default implementation for primitive unsigned/signed integers.
 /// In nightly Rust as of early 2022, this works for `char`, too - `char` implements `Sub<char>`, even though that doesn't show up at https://doc.rust-lang.org/nightly/std/primitive.char.html.
-/// TODO make this compile conditionally: - errornous for 32 bit and bigger integers on 16bit platforms.
-/// TODO Remove Add<T>
-impl<T: Clone + Sub<T> + Add<T>> Indexer<T> for RangeIndexer<T>
+impl<T: Clone + Sub<T>> Indexer<T> for RangeIndexer<T>
 where
     T: TryInto<usize>,
     usize: TryFrom<T>,
@@ -60,8 +57,8 @@ where
     <T as TryInto<usize>>::Error: fmt::Debug,
 {
     fn index(&self, key: &T) -> usize {
-        // @TODO Consider an alternative: key.clone().try_into().expect(...) - self.start_index. Unsure about default implementation for `char`.
-        // However, the current implementation would work on 16 bit platforms,
+        // An alternative: key.clone().try_into().expect(...) - self.start_index. @TODO Unsure about default implementation for `char`.
+        // However, the current implementation would work on 16 bit platforms, too,
         // while using key.clone.try_into().expect(...) - self.start_index would not!
         (key.clone() - self.start_key.clone())
             .try_into()
@@ -82,13 +79,11 @@ where
         }
     }
 }
-
 /*
 /// As per https://doc.rust-lang.org/std/primitive.char.html#method.from_u32, any `char` can be cast to u32
-/// TODO make this conditional - not compilable on 16bit platforms.
 impl Indexer<char> for RangeIndexer<char> {
     fn index(&self, item: &char) -> usize {
-        *item as u32 - self.start as u32
+        (*item as u32 - self.start as u32) as usize
     }
     fn value(&self, index: usize) -> char {
         char::from_u32(self.start as usize + index).unwrap()

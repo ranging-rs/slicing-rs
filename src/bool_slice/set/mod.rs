@@ -4,7 +4,7 @@ use core::{fmt, marker::PhantomData};
 
 /// Backed by a slice of booleans (not packed, but ordinary).
 /// Not backed by an (owned) array - that would require a const generic parameter (size), which would
-/// enlarge the resulting binary and compile & build time.
+/// enlarge the resulting binary and increase compile & link time.
 #[derive(Debug)]
 pub struct Set<'s, T: Clone, I: Indexer<T>> {
     slice: BoolSlice<'s>,
