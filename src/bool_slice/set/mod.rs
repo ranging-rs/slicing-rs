@@ -1,11 +1,14 @@
-use crate::{BoolSlice, ByteSlice,};
 use crate::index::{Indexer, RangeIndexer};
+use crate::{BoolSlice, ByteSlice};
 use core::ops::{Add, Sub};
 use core::{fmt, marker::PhantomData};
 
 /// Backed by a slice of booleans (not packed, but ordinary).
 /// Not backed by an (owned) array - that would require a const generic parameter (size), which would
 /// enlarge the resulting binary and increase compile & link time.
+/// TODO Consider const generic parameter (size), but pass 0 if unused.
+/// Then try client code with size parameter being an underscore: impl Set<'s, T, I, _>.
+/// TODO Move the above docs to src/slices/
 #[derive(Debug)]
 pub struct Set<'s, T: Clone, I: Indexer<T>> {
     slice: BoolSlice<'s>,
@@ -56,13 +59,16 @@ impl<'s, T: Eq + Clone, I: Indexer<T>> crate::Set<T> for Set<'s, T, I> {
             _items: PhantomData,
         }
     }
-    fn new_like(&self) -> Self {
+}
+
+impl<'s, T: Eq + Clone, I: Indexer<T>> crate::abstra::NewLike for Set<'s, T, I> {
+    fn new_like(&self) -> Self {//@TODO
         unimplemented!("Cannot be implemented.");
     }
 }
 
 impl<'s, T: Eq + Clone, I: Indexer<T>> Clone for Set<'s, T, I> {
-    fn clone(&self) -> Self {
+    fn clone(&self) -> Self {//@TODO
         unimplemented!("Cannot be supported");
     }
 }

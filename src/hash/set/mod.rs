@@ -26,7 +26,8 @@ impl<T: Hash + Eq + Clone> crate::Set<T> for HashedSet<T> {
             set_iter: self.set.iter(),
         }
     }
-
+}
+impl<T: Hash + Eq + Clone> crate::abstra::NewLike for HashedSet<T> {
     fn new_like(&self) -> Self {
         Self {
             set: HashSet::<T>::new(),

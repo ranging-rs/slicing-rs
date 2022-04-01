@@ -7,6 +7,7 @@ pub mod bool_slice;
 mod set;
 mod slices;
 
+pub mod abstra;
 #[cfg(not(feature = "no_std"))]
 pub mod hash;
 pub mod index;

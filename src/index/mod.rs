@@ -1,5 +1,5 @@
 use core::fmt::{self};
-use core::ops::{Sub};
+use core::ops::Sub;
 
 /// Handles transformations of an item to an index, and vice versa.
 /// A collection has an `Indexer` instance, but the `Indexer` implementation
