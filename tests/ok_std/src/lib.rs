@@ -1,3 +1,5 @@
+use ranging::hash::set::HashedSet;
+
 #[cfg(test)]
 mod tests {
     #[test]

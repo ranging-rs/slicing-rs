@@ -1,4 +1,3 @@
-#![cfg_attr(feature = "no_std", no_std)]
 use crate::{BoolSlice, ByteSlice, Indexer, RangeIndexer};
 use core::ops::{Add, Sub};
 use core::{fmt, marker::PhantomData};

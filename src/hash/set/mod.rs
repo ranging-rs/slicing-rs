@@ -1,8 +1,3 @@
-/// We use b-modules - that makes it easier to use !#[cfg(not(feature(no_std)))] for the whole file.
-#![cfg_attr(feature = "no_std", no_std)]
-
-#![cfg(not(feature = "no_std"))]
-
 use core::hash::Hash;
 use std::collections::{hash_set, HashSet};
 
@@ -11,7 +6,7 @@ pub struct HashedSet<T> {
     set: HashSet<T>,
 }
 
-impl<T: Hash + Eq + Clone> super::Set<T> for HashedSet<T> {
+impl<T: Hash + Eq + Clone> crate::Set<T> for HashedSet<T> {
     type ITER<'a>
     where
         T: 'a,

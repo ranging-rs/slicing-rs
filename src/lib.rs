@@ -1,4 +1,5 @@
 #![cfg_attr(feature = "no_std", no_std)]
+
 #![feature(generic_associated_types)]
 #![feature(associated_type_bounds)]
 
@@ -7,10 +8,7 @@ pub mod bool_slice;
 mod set;
 mod slices;
 
-/// TODO why doesn't the following activate?
-//#[cfg(not(no_std))]
-//#[cfg(not(feature = "no_std"))]
-// something-to-conditionally-compile
+#[cfg(not(feature = "no_std"))]
 pub mod hash;
 
 pub use set::*;

@@ -1,6 +1,8 @@
 #![no_std]
 
-use abstra::{BoolSlice, Set, Slice};
+use ranging::{BoolSlice, Set, Slice};
+// TODO test that the following fails to compile
+//use ranging::hash::Set;
 
 #[cfg(test)]
 mod tests {
