@@ -60,7 +60,7 @@ impl<'a, const N: usize> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
         old_byte != new_byte
     }
     fn iter<'s>(&'s self) -> Self::ITER<'s> {
-        todo!()
+        ByteSliceBoolIter::new(self.byte_slice.iter())
     }
     // Constructor functions. Supposed to be in-place/copy, but that's not possible from bool-based input - hence never to be implemented.
     fn from_shared_slice<'s>(_slice: &'s [bool]) -> Self
