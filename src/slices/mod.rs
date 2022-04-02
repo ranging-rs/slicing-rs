@@ -13,34 +13,19 @@ where
     fn set(&mut self, index: usize, value: &T);
     fn iter<'s>(&'s self) -> Self::ITER<'s>;
 
-    // Conversion functions.
-    /*fn from_shared_slice(slice: &'s [bool], start: &T) -> Self {
-        Self::from_bool_slice(BoolSlice::Shared(slice), start)
-    }
-    fn from_mutable_slice(slice: &'s mut [bool], start: &T) -> Self {
-        Self::from_bool_slice(BoolSlice::Mutable(slice), start)
-    }
-    fn from_array(array: [bool; N], start: &T) -> Self {
-        Self::from_bool_slice(BoolSlice::Array(array), start)
-    }
+    // Constructor functions.
+    fn from_shared_slice<'s>(slice: &'s [T]) -> Self
+    where
+        Self: 's;
+    fn from_mutable_slice<'s>(slice: &'s mut [T]) -> Self
+    where
+        Self: 's;
+    fn from_array(array: [T; N]) -> Self;
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
-    fn from_vec(vector: Vec<bool>, start: &T) -> Self {
-        Self::from_bool_slice(BoolSlice::Vec(vector), start)
-    }
-    fn new_with_array(start: &T) -> Self {
-        Self::from_bool_slice(BoolSlice::Array([false; N]), start)
-    }
+    fn from_vec(vector: Vec<T>) -> Self;
+    fn new_with_array() -> Self;
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
-    fn new_with_vec(start: &T) -> Self {
-        Self::from_bool_slice(
-            BoolSlice::Vec(if N > 0 {
-                Vec::with_capacity(N)
-            } else {
-                Vec::new()
-            }),
-            start,
-        )
-    }*/
+    fn new_with_vec() -> Self;
 }
 
 /// Const generic param `N` is used by `Slice::Array` only. (However, it makes all variants consume space. Hence:) Suggested for `no_std` only.
@@ -83,7 +68,8 @@ impl<'s, T: 's, const N: usize> SliceStorage<'s, T, N> {
     }
 }
 
-impl<'s: 'sl, 'sl, T: 's + Clone + PartialEq, const N: usize> Slice<'sl, T, N>
+// If we ever need this for non-Copy, then split this, and for non-Copy make `new_with_array()` panic.
+impl<'s, T: 's + Copy + PartialEq + Default, const N: usize> Slice<'s, T, N>
     for SliceStorage<'s, T, N>
 {
     type ITER<'i> = core::slice::Iter<'i, T>
@@ -102,6 +88,39 @@ impl<'s: 'sl, 'sl, T: 's + Clone + PartialEq, const N: usize> Slice<'sl, T, N>
     }
     fn iter<'i>(&'i self) -> Self::ITER<'i> {
         self.shared_slice().iter()
+    }
+    // Constructor functions.
+    fn from_shared_slice<'inp>(slice: &'inp [T]) -> Self
+    where
+        Self: 'inp,
+    {
+        //Self::Shared(slice)
+        todo!()
+    }
+    fn from_mutable_slice<'inp>(slice: &'inp mut [T]) -> Self
+    where
+        Self: 'inp,
+    {
+        //Self::Mutable(slice)
+        todo!()
+    }
+    fn from_array(array: [T; N]) -> Self {
+        Self::Array(array)
+    }
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    fn from_vec(vector: Vec<T>) -> Self {
+        Self::Vec(vector)
+    }
+    fn new_with_array() -> Self {
+        Self::Array([T::default(); N])
+    }
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    fn new_with_vec() -> Self {
+        Self::from_vec(if N > 0 {
+            Vec::with_capacity(N)
+        } else {
+            Vec::new()
+        })
     }
 }
 
