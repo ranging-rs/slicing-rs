@@ -14,12 +14,8 @@ where
     fn iter<'s>(&'s self) -> Self::ITER<'s>;
 
     // Constructor functions.
-    fn from_shared_slice<'s>(slice: &'s [T]) -> Self
-    where
-        Self: 's;
-    fn from_mutable_slice<'s>(slice: &'s mut [T]) -> Self
-    where
-        Self: 's;
+    fn from_shared_slice(slice: &'a [T]) -> Self;
+    fn from_mutable_slice(slice: &'a mut [T]) -> Self;
     fn from_array(array: [T; N]) -> Self;
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn from_vec(vector: Vec<T>) -> Self;
@@ -69,8 +65,8 @@ impl<'s, T: 's, const N: usize> SliceStorage<'s, T, N> {
 }
 
 // If we ever need this for non-Copy, then split this, and for non-Copy make `new_with_array()` panic.
-impl<'s, T: 's + Copy + PartialEq + Default, const N: usize> Slice<'s, T, N>
-    for SliceStorage<'s, T, N>
+impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
+    for SliceStorage<'a, T, N>
 {
     type ITER<'i> = core::slice::Iter<'i, T>
     where T: 'i, Self: 'i;
@@ -90,19 +86,13 @@ impl<'s, T: 's + Copy + PartialEq + Default, const N: usize> Slice<'s, T, N>
         self.shared_slice().iter()
     }
     // Constructor functions.
-    fn from_shared_slice<'inp>(slice: &'inp [T]) -> Self
-    where
-        Self: 'inp,
+    fn from_shared_slice(slice: &'a [T]) -> Self
+//where  Self: 'inp, 'inp: 's
     {
-        //Self::Shared(slice)
-        todo!()
+        Self::Shared(slice)
     }
-    fn from_mutable_slice<'inp>(slice: &'inp mut [T]) -> Self
-    where
-        Self: 'inp,
-    {
-        //Self::Mutable(slice)
-        todo!()
+    fn from_mutable_slice(slice: &'a mut [T]) -> Self {
+        Self::Mutable(slice)
     }
     fn from_array(array: [T; N]) -> Self {
         Self::Array(array)

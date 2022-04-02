@@ -63,16 +63,10 @@ impl<'a, const N: usize> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
         ByteSliceBoolIter::new(self.byte_slice.iter())
     }
     // Constructor functions. Supposed to be in-place/copy, but that's not possible from bool-based input - hence never to be implemented.
-    fn from_shared_slice<'s>(_slice: &'s [bool]) -> Self
-    where
-        Self: 's,
-    {
+    fn from_shared_slice(_slice: &'a [bool]) -> Self {
         unimplemented!("Never")
     }
-    fn from_mutable_slice<'s>(_slice: &'s mut [bool]) -> Self
-    where
-        Self: 's,
-    {
+    fn from_mutable_slice(_slice: &'a mut [bool]) -> Self {
         unimplemented!("Never")
     }
     fn from_array(_array: [bool; N]) -> Self {
