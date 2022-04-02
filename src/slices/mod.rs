@@ -1,11 +1,45 @@
 use crate::index::Indexer;
 use core::marker::PhantomData;
 
-pub trait Slice<'a, T: 'a + Clone + PartialEq> {
+pub trait Slice<'a, T: 'a + Clone + PartialEq>
+where
+    Self: 'a,
+{
     fn get(&self, index: usize) -> T;
-    /// Return true if this value was not present yet. (Based on std::collections::HashSet.)
-    fn set(&mut self, index: usize, value: &T) -> bool;
-    fn iter(&'a self) -> core::slice::Iter<'a, T>;
+    /// Set the value. Return true if this value was not present. (Based on std::collections::HashSet.)
+    fn check_and_set(&mut self, index: usize, value: &T) -> bool;
+    /// Set the value.
+    fn set(&mut self, index: usize, value: &T);
+    fn iter(&self) -> core::slice::Iter<T>;
+
+    // Conversion functions.
+    /*pub fn from_shared_slice(slice: &'s [bool], start: &T) -> Self {
+        Self::from_bool_slice(BoolSlice::Shared(slice), start)
+    }
+    pub fn from_mutable_slice(slice: &'s mut [bool], start: &T) -> Self {
+        Self::from_bool_slice(BoolSlice::Mutable(slice), start)
+    }
+    pub fn from_array(array: [bool; N], start: &T) -> Self {
+        Self::from_bool_slice(BoolSlice::Array(array), start)
+    }
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    pub fn from_vec(vector: Vec<bool>, start: &T) -> Self {
+        Self::from_bool_slice(BoolSlice::Vec(vector), start)
+    }
+    pub fn new_with_array(start: &T) -> Self {
+        Self::from_bool_slice(BoolSlice::Array([false; N]), start)
+    }
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    pub fn new_with_vec(start: &T) -> Self {
+        Self::from_bool_slice(
+            BoolSlice::Vec(if N > 0 {
+                Vec::with_capacity(N)
+            } else {
+                Vec::new()
+            }),
+            start,
+        )
+    }*/
 }
 
 /// Const generic param `N` is used by `Slice::Array` only. (However, it makes all variants consume space. Hence:) Suggested for `no_std` only.
@@ -50,17 +84,22 @@ impl<'s, T: 's, const N: usize> SliceStorage<'s, T, N> {
     }
 }
 
-impl<'s, T: 's + Clone + PartialEq, const N: usize> Slice<'s, T> for SliceStorage<'s, T, N> {
+impl<'s: 'sl, 'sl, T: 's + Clone + PartialEq, const N: usize> Slice<'sl, T>
+    for SliceStorage<'s, T, N>
+{
     fn get(&self, index: usize) -> T {
         self.shared_slice()[index].clone()
     }
-    fn set(&mut self, index: usize, value: &T) -> bool {
+    fn check_and_set(&mut self, index: usize, value: &T) -> bool {
         let mutable_slice = self.mutable_slice();
         let is_modifying = *value != mutable_slice[index];
         mutable_slice[index] = value.clone();
         is_modifying
     }
-    fn iter(&'s self) -> core::slice::Iter<'s, T> {
+    fn set(&mut self, index: usize, value: &T) {
+        self.mutable_slice()[index] = value.clone();
+    }
+    fn iter(&self) -> core::slice::Iter<T> {
         self.shared_slice().iter()
     }
 }

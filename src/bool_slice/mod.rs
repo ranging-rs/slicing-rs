@@ -1,3 +1,2 @@
 mod set;
-
-pub use set::Set;
+pub use set::*;

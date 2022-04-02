@@ -6,7 +6,7 @@ pub struct HashedSet<T> {
     set: HashSet<T>,
 }
 
-impl<T: Hash + Eq + Clone> crate::Set<T> for HashedSet<T> {
+impl<T: Hash + Eq + Clone> crate::set::Set<T> for HashedSet<T> {
     type ITER<'a>
     where
         T: 'a,
