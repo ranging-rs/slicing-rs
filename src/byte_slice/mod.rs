@@ -37,7 +37,7 @@ impl<'a, const N: usize> ByteSliceBoolStorage<'a, N> {
     }
 }
 
-impl<'a, const N: usize> Slice<'a, bool> for ByteSliceBoolStorage<'a, N> {
+impl<'a, const N: usize> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
     type ITER<'s> = core::slice::Iter<'s, bool>
     where Self: 's;
     fn get(&self, index: usize) -> bool {

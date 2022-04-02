@@ -1,6 +1,6 @@
 mod tests;
 
-pub trait Slice<'a, T: 'a + Clone + PartialEq>
+pub trait Slice<'a, T: 'a + Clone + PartialEq, const N: usize>
 where
     Self: 'a,
 {
@@ -14,24 +14,24 @@ where
     fn iter<'s>(&'s self) -> Self::ITER<'s>;
 
     // Conversion functions.
-    /*pub fn from_shared_slice(slice: &'s [bool], start: &T) -> Self {
+    /*fn from_shared_slice(slice: &'s [bool], start: &T) -> Self {
         Self::from_bool_slice(BoolSlice::Shared(slice), start)
     }
-    pub fn from_mutable_slice(slice: &'s mut [bool], start: &T) -> Self {
+    fn from_mutable_slice(slice: &'s mut [bool], start: &T) -> Self {
         Self::from_bool_slice(BoolSlice::Mutable(slice), start)
     }
-    pub fn from_array(array: [bool; N], start: &T) -> Self {
+    fn from_array(array: [bool; N], start: &T) -> Self {
         Self::from_bool_slice(BoolSlice::Array(array), start)
     }
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
-    pub fn from_vec(vector: Vec<bool>, start: &T) -> Self {
+    fn from_vec(vector: Vec<bool>, start: &T) -> Self {
         Self::from_bool_slice(BoolSlice::Vec(vector), start)
     }
-    pub fn new_with_array(start: &T) -> Self {
+    fn new_with_array(start: &T) -> Self {
         Self::from_bool_slice(BoolSlice::Array([false; N]), start)
     }
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
-    pub fn new_with_vec(start: &T) -> Self {
+    fn new_with_vec(start: &T) -> Self {
         Self::from_bool_slice(
             BoolSlice::Vec(if N > 0 {
                 Vec::with_capacity(N)
@@ -83,7 +83,7 @@ impl<'s, T: 's, const N: usize> SliceStorage<'s, T, N> {
     }
 }
 
-impl<'s: 'sl, 'sl, T: 's + Clone + PartialEq, const N: usize> Slice<'sl, T>
+impl<'s: 'sl, 'sl, T: 's + Clone + PartialEq, const N: usize> Slice<'sl, T, N>
     for SliceStorage<'s, T, N>
 {
     type ITER<'i> = core::slice::Iter<'i, T>

@@ -11,7 +11,7 @@ pub struct BoolFlagSet<
     's,
     T: 's + Clone + PartialEq,
     I: Indexer<T>,
-    SL: Slice<'s, bool>,
+    SL: Slice<'s, bool, N>,
     const N: usize,
 > {
     slice: SL,
@@ -25,7 +25,7 @@ impl<
         's,
         T: 's + Eq + Clone + Copy + Default,
         I: Indexer<T>,
-        SL: 's + Slice<'s, bool> + Clone + NewLike,
+        SL: 's + Slice<'s, bool, N> + Clone + NewLike,
         const N: usize,
     > crate::set::Set<T> for BoolFlagSet<'s, T, I, SL, N>
 where
@@ -61,7 +61,7 @@ impl<
         's,
         T: 's + Eq + Clone + Copy + Default,
         I: Indexer<T>,
-        SL: Slice<'s, bool> + NewLike,
+        SL: Slice<'s, bool, N> + NewLike,
         const N: usize,
     > NewLike for BoolFlagSet<'s, T, I, SL, N>
 {
@@ -75,7 +75,7 @@ impl<
     }
 }
 
-impl<'s, T: Eq + Clone, I: Indexer<T>, SL: Slice<'s, bool> + Clone, const N: usize> Clone
+impl<'s, T: Eq + Clone, I: Indexer<T>, SL: Slice<'s, bool, N> + Clone, const N: usize> Clone
     for BoolFlagSet<'s, T, I, SL, N>
 {
     fn clone(&self) -> Self {
@@ -114,7 +114,7 @@ impl<'a, T: Clone, IND: Indexer<T>, SLIT: Iterator<Item = &'a bool>> Iterator
     }
 }
 
-impl<'s, T: 's + Eq + Clone + Default + Sub<T>, SL: Slice<'s, bool>, const N: usize>
+impl<'s, T: 's + Eq + Clone + Default + Sub<T>, SL: Slice<'s, bool, N>, const N: usize>
     BoolFlagSet<'s, T, RangeIndexer<T>, SL, N>
 where
     T: TryInto<usize>,
