@@ -90,7 +90,6 @@ impl<'s, T: Eq + Clone, I: Indexer<T>, SL: Slice<'s, bool> + Clone, const N: usi
 
 #[derive(Clone)]
 pub struct BoolFlagSetIter<'a, T: Clone, IND: Indexer<T>, SLIT: Iterator<Item = &'a bool>> {
-    //slice_enum: core::iter::Enumerate<core::slice::Iter<'a, bool>>,
     slice_enum: core::iter::Enumerate<SLIT>,
     /// Not a reference, but cloned & owned (better for CPU cache affinity)
     /// when indexers are small. Having a big indexer? Then make the Indexer implementation refer to it.

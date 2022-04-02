@@ -1,3 +1,5 @@
+mod tests;
+
 pub trait Slice<'a, T: 'a + Clone + PartialEq>
 where
     Self: 'a,

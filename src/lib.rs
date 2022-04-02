@@ -14,19 +14,3 @@ pub mod slices;
 
 #[cfg(all(not(feature = "no_std"), feature = "std"))]
 pub mod hash;
-
-#[allow(unused)]
-#[cfg(test)]
-mod test {
-    #[test]
-    fn f() {}
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-}

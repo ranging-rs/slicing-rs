@@ -9,7 +9,7 @@ edition = "2021"
 std = []
 no_std = []
 # only for testing:
-default = ["std"]
+# default = ["std"]
 [dependencies]
 
 # Do not have a test-based workspace. It upset both
