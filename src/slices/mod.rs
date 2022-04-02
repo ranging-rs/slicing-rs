@@ -5,12 +5,15 @@ pub trait Slice<'a, T: 'a + Clone + PartialEq>
 where
     Self: 'a,
 {
+    type ITER<'i>: Iterator<Item = &'i T> = core::slice::Iter<'i, T> where T: 'i, Self: 'i;
+    //type ITER: Iterator<Item = &'a T> = core::slice::Iter<'a, T> where T: 'a;
+
     fn get(&self, index: usize) -> T;
     /// Set the value. Return true if this value was not present. (Based on std::collections::HashSet.)
     fn check_and_set(&mut self, index: usize, value: &T) -> bool;
     /// Set the value.
     fn set(&mut self, index: usize, value: &T);
-    fn iter(&self) -> core::slice::Iter<T>;
+    fn iter<'s>(&'s self) -> Self::ITER<'s>;
 
     // Conversion functions.
     /*pub fn from_shared_slice(slice: &'s [bool], start: &T) -> Self {
@@ -87,6 +90,10 @@ impl<'s, T: 's, const N: usize> SliceStorage<'s, T, N> {
 impl<'s: 'sl, 'sl, T: 's + Clone + PartialEq, const N: usize> Slice<'sl, T>
     for SliceStorage<'s, T, N>
 {
+    //type ITER<'i: 's + 'sl> = core::slice::Iter<'i, T>
+    //where T: 'i, Self: 'i;
+    type ITER<'i> = core::slice::Iter<'i, T>
+    where T: 'i, Self: 'i;
     fn get(&self, index: usize) -> T {
         self.shared_slice()[index].clone()
     }
@@ -99,7 +106,7 @@ impl<'s: 'sl, 'sl, T: 's + Clone + PartialEq, const N: usize> Slice<'sl, T>
     fn set(&mut self, index: usize, value: &T) {
         self.mutable_slice()[index] = value.clone();
     }
-    fn iter(&self) -> core::slice::Iter<T> {
+    fn iter<'i>(&'i self) -> Self::ITER<'i> {
         self.shared_slice().iter()
     }
 }

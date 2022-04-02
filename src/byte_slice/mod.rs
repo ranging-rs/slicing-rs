@@ -2,7 +2,7 @@ use crate::bool_flag::BoolFlagSet;
 use crate::index::Indexer;
 use crate::slices::{ByteSlice, Slice};
 
-struct ByteSliceBoolStorage<'a, const N: usize>
+pub struct ByteSliceBoolStorage<'a, const N: usize>
 where
     Self: 'a,
 {
@@ -38,6 +38,8 @@ impl<'a, const N: usize> ByteSliceBoolStorage<'a, N> {
 }
 
 impl<'a, const N: usize> Slice<'a, bool> for ByteSliceBoolStorage<'a, N> {
+    type ITER<'s> = core::slice::Iter<'s, bool>
+    where Self: 's;
     fn get(&self, index: usize) -> bool {
         let byte = self.byte_slice.get(index / 8);
         let one_shifted = ONE_SHIFTS[index % 8];
@@ -52,7 +54,7 @@ impl<'a, const N: usize> Slice<'a, bool> for ByteSliceBoolStorage<'a, N> {
         self.byte_slice.set(byte_index, &new_byte);
         old_byte != new_byte
     }
-    fn iter(&self) -> core::slice::Iter<bool> {
+    fn iter<'s>(&'s self) -> Self::ITER<'s> /*core::slice::Iter<bool>*/ {
         todo!()
     }
 }

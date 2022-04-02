@@ -21,10 +21,10 @@ pub struct BoolFlagSet<
     _s_lifetimed: PhantomData<&'s ()>,
 }
 
-impl<'s, T: 's + Eq + Clone, I: Indexer<T>, SL: Slice<'s, bool>, const N: usize>
+/*impl<'s, T: 's + Eq + Clone, I: Indexer<T>, SL: Slice<'s, bool>, const N: usize>
     BoolFlagSet<'s, T, I, SL, N>
 {
-}
+}*/
 
 impl<
         's,
@@ -35,8 +35,14 @@ impl<
     > crate::set::Set<T> for BoolFlagSet<'s, T, I, SL, N>
 where
     Self: 's,
+    //<SL as Slice<'s, bool>>::ITER<'s> :std::slice::Iter<'s, bool>
+    SL::ITER<'s> : 's
+    // + core::slice::Iter<'s, bool>
+    //SL: 's
 {
-    type ITER<'a>    = BoolFlagSetIter<'a, T, I> where T: 'a, Self: 'a;
+    //type ITER<'a> = BoolFlagSetIter<'a, T, I, core::slice::Iter<'a, bool>> where T: 'a, Self: 'a;
+    type ITER<'a> = BoolFlagSetIter<'a, T, I, SL::ITER<'a>> where T: 'a, Self: 'a;
+    //'s: 'a
 
     fn contains(&self, value: &T) -> bool {
         self.slice.get(self.indexer.index(value))
@@ -51,7 +57,7 @@ where
         let index = self.indexer.index(&value);
         self.slice.check_and_set(index, &false)
     }
-    // @TODO partially move to Slice::iter()
+    
     fn iter<'a>(&'a self) -> Self::ITER<'a> {
         //fn iter(&'s self) -> Self::ITER<'s> {
         BoolFlagSetIter {
@@ -94,14 +100,15 @@ impl<'s, T: Eq + Clone, I: Indexer<T>, SL: Slice<'s, bool> + Clone, const N: usi
 }
 
 #[derive(Clone)]
-pub struct BoolFlagSetIter<'a, T: Clone, I: Indexer<T>> {
-    slice_enum: core::iter::Enumerate<core::slice::Iter<'a, bool>>,
+pub struct BoolFlagSetIter<'a, T: Clone, IND: Indexer<T>, SLIT: Iterator<Item = &'a bool>> {
+    //slice_enum: core::iter::Enumerate<core::slice::Iter<'a, bool>>,
+    slice_enum: core::iter::Enumerate<SLIT>,
     /// Not a reference, but cloned & owned (better for CPU cache affinity)
     /// when indexers are small. Having a big indexer? Then make the Indexer implementation refer to it.
-    indexer: I,
+    indexer: IND,
     _items: PhantomData<T>,
 }
-impl<'a, T: Clone, I: Indexer<T>> Iterator for BoolFlagSetIter<'a, T, I> {
+impl<'a, T: Clone, IND: Indexer<T>, SLIT: Iterator<Item = &'a bool>> Iterator for BoolFlagSetIter<'a, T, IND, SLIT> {
     type Item = T;
     #[inline]
     fn next(&mut self) -> Option<T> {
