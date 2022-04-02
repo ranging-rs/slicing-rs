@@ -1,12 +1,8 @@
-use crate::index::Indexer;
-use core::marker::PhantomData;
-
 pub trait Slice<'a, T: 'a + Clone + PartialEq>
 where
     Self: 'a,
 {
     type ITER<'i>: Iterator<Item = &'i T> = core::slice::Iter<'i, T> where T: 'i, Self: 'i;
-    //type ITER: Iterator<Item = &'a T> = core::slice::Iter<'a, T> where T: 'a;
 
     fn get(&self, index: usize) -> T;
     /// Set the value. Return true if this value was not present. (Based on std::collections::HashSet.)
@@ -60,7 +56,6 @@ pub enum SliceStorage<'a, T: 'a, const N: usize> {
 
 impl<'s, T: 's, const N: usize> SliceStorage<'s, T, N> {
     #[inline]
-    /*pub*/
     fn shared_slice<'a>(&'a self) -> &'a [T] {
         match &self {
             SliceStorage::Shared(slice) => slice,
@@ -73,7 +68,6 @@ impl<'s, T: 's, const N: usize> SliceStorage<'s, T, N> {
 
     #[inline]
     /// Implemented for all except for Shared-based slice.
-    /*pub*/
     fn mutable_slice<'a>(&'a mut self) -> &'a mut [T] {
         match self {
             SliceStorage::Shared(_) => {
@@ -90,8 +84,6 @@ impl<'s, T: 's, const N: usize> SliceStorage<'s, T, N> {
 impl<'s: 'sl, 'sl, T: 's + Clone + PartialEq, const N: usize> Slice<'sl, T>
     for SliceStorage<'s, T, N>
 {
-    //type ITER<'i: 's + 'sl> = core::slice::Iter<'i, T>
-    //where T: 'i, Self: 'i;
     type ITER<'i> = core::slice::Iter<'i, T>
     where T: 'i, Self: 'i;
     fn get(&self, index: usize) -> T {

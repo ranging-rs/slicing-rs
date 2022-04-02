@@ -54,7 +54,7 @@ impl<'a, const N: usize> Slice<'a, bool> for ByteSliceBoolStorage<'a, N> {
         self.byte_slice.set(byte_index, &new_byte);
         old_byte != new_byte
     }
-    fn iter<'s>(&'s self) -> Self::ITER<'s> /*core::slice::Iter<bool>*/ {
+    fn iter<'s>(&'s self) -> Self::ITER<'s> {
         todo!()
     }
 }
