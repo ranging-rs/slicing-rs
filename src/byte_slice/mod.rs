@@ -1,5 +1,4 @@
 use crate::bool_flag::BoolFlagSet;
-use crate::index::Indexer;
 use crate::slices::{ByteSlice, Slice};
 
 pub struct ByteSliceBoolStorage<'a, const N: usize>

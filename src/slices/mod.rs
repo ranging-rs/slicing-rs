@@ -1,5 +1,3 @@
-mod tests;
-
 pub trait Slice<'a, T: 'a + Clone + PartialEq, const N: usize>
 where
     Self: 'a,
@@ -39,7 +37,7 @@ pub enum SliceStorage<'a, T: 'a, const N: usize> {
 
 impl<'s, T: 's, const N: usize> SliceStorage<'s, T, N> {
     #[inline]
-    fn shared_slice<'a>(&'a self) -> &'a [T] {
+    pub fn shared_slice<'a>(&'a self) -> &'a [T] {
         match &self {
             SliceStorage::Shared(slice) => slice,
             SliceStorage::Mutable(slice) => slice,
@@ -51,7 +49,7 @@ impl<'s, T: 's, const N: usize> SliceStorage<'s, T, N> {
 
     #[inline]
     /// Implemented for all except for Shared-based slice.
-    fn mutable_slice<'a>(&'a mut self) -> &'a mut [T] {
+    pub fn mutable_slice<'a>(&'a mut self) -> &'a mut [T] {
         match self {
             SliceStorage::Shared(_) => {
                 unimplemented!("Can't get a mutable slice from a shared slice.")
@@ -86,9 +84,7 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
         self.shared_slice().iter()
     }
     // Constructor functions.
-    fn from_shared_slice(slice: &'a [T]) -> Self
-//where  Self: 'inp, 'inp: 's
-    {
+    fn from_shared_slice(slice: &'a [T]) -> Self {
         Self::Shared(slice)
     }
     fn from_mutable_slice(slice: &'a mut [T]) -> Self {

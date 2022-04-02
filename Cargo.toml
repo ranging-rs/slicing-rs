@@ -8,8 +8,8 @@ edition = "2021"
 [features]
 std = []
 no_std = []
-# only for testing:
-# default = ["std"]
+# DO NOT enable the following "only for testing", because it gets forgotten... Use tests/ok_std/ instead.
+## default = ["std"]
 [dependencies]
 
 # Do not have a test-based workspace. It upset both
