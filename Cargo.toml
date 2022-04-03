@@ -6,12 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
+# std and no_std are mutually exclusive
 std = []
 no_std = []
+
+# Whether 
+size_for_owned_only = []
+
 # DO NOT enable the following "only for testing", because it gets forgotten... Use tests/ok_std/ instead.
 ## default = ["std"]
-[dependencies]
 
+[dependencies]
 # Do not have a test-based workspace. It upset both
 # - `cargo test --workspace` for tests/ok_std
 #    (even though `cargo test --package ok_std` worked fine), and

@@ -12,5 +12,8 @@ pub mod byte_slice;
 pub mod set;
 pub mod slices;
 
+#[cfg(all(feature = "no_std", feature = "std"))]
+std_and_no_std_are_mutually_exclusive!();
+
 #[cfg(all(not(feature = "no_std"), feature = "std"))]
 pub mod hash;

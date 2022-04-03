@@ -1,3 +1,4 @@
+/// Param `N` = array/vec size (if Some). Some(0) is allowed (for empty arrays).
 pub trait Slice<'a, T: 'a + Clone + PartialEq, const N: usize>
 where
     Self: 'a,
@@ -91,15 +92,17 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
 
     // Ownership transfer constructors.
     fn from_shared_slice(slice: &'a [T]) -> Self {
-        #[cfg(feature = "size_for_array_or_vec_only")]
+        #[cfg(feature = "size_for_owned_only")]
         assert!(N == 0);
         Self::Shared(slice)
     }
     fn from_mutable_slice(slice: &'a mut [T]) -> Self {
+        #[cfg(feature = "size_for_owned_only")]
+        assert!(N == 0);
         Self::Mutable(slice)
     }
     fn from_array(array: [T; N]) -> Self {
-        #[cfg(feature = "size_for_array_or_vec_only")]
+        #[cfg(feature = "size_for_owned_only")]
         assert!(N > 0);
         // \---> TODO consider const N: Option<usize>, or a custom enum.
         Self::Array(array)
@@ -107,6 +110,9 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
 
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn from_vec(vector: Vec<T>) -> Self {
+        #[cfg(feature = "size_for_owned_only")]
+        assert!(N > 0);
+        assert!(vector.len() == N);
         Self::Vec(vector)
     }
 
@@ -114,11 +120,16 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
     /// Implemented only if T: Copy + Default.
     // Constructors setting blank/default vaLues.
     fn new_with_array() -> Self {
+        #[cfg(feature = "size_for_owned_only")]
+        assert!(N > 0);
         Self::Array([T::default(); N])
     }
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn new_with_vec() -> Self {
+        #[cfg(feature = "size_for_owned_only")]
+        assert!(N > 0);
         Self::from_vec(Vec::with_capacity(N))
+        // @TODO populate
     }
 }
 
