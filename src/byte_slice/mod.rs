@@ -61,7 +61,9 @@ impl<'a, const N: usize> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
     fn iter<'s>(&'s self) -> Self::ITER<'s> {
         ByteSliceBoolIter::new(self.byte_slice.iter())
     }
-    // Constructor functions. Supposed to be in-place/copy, but that's not possible from bool-based input - hence never to be implemented.
+
+    // Ownership transfer constructors. Supposed to be in-place/copy = fast, but that's not possible from bool-based input - hence never to be implemented.
+    // @TODO Consider: NO ownership transfer, but pass a reference, and transform into a (packed) byte slice.
     fn from_shared_slice(_slice: &'a [bool]) -> Self {
         unimplemented!("Never")
     }
@@ -71,16 +73,20 @@ impl<'a, const N: usize> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
     fn from_array(_array: [bool; N]) -> Self {
         unimplemented!("Never")
     }
+
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn from_vec(_vector: Vec<bool>) -> Self {
         unimplemented!("Never")
     }
+
+    // Constructors setting blank/default vaLues.
+    /// Implemented only if T: Copy + Default.
     fn new_with_array() -> Self {
-        unimplemented!("Never")
+        unimplemented!("Never") //@TODO Consider later.
     }
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn new_with_vec() -> Self {
-        unimplemented!("Never")
+        unimplemented!("Never") //@TODO Consider later.
     }
 }
 

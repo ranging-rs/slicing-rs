@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 ranging = { path = "../..", features = ["no_std"]}
+any_std = { path = "../any_std" }

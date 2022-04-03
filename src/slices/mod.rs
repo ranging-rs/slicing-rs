@@ -11,14 +11,19 @@ where
     fn set(&mut self, index: usize, value: &T);
     fn iter<'s>(&'s self) -> Self::ITER<'s>;
 
-    // Constructor functions.
+    // Ownership transfer constructors.
     fn from_shared_slice(slice: &'a [T]) -> Self;
     fn from_mutable_slice(slice: &'a mut [T]) -> Self;
     fn from_array(array: [T; N]) -> Self;
+
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn from_vec(vector: Vec<T>) -> Self;
+
+    // Constructors setting blank/default vaLues.
+    /// Implemented only if T: Copy + Default.
     fn new_with_array() -> Self;
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    /// Implemented only if T: Default.
     fn new_with_vec() -> Self;
 }
 
@@ -62,7 +67,7 @@ impl<'s, T: 's, const N: usize> SliceStorage<'s, T, N> {
     }
 }
 
-// If we ever need this for non-Copy, then split this, and for non-Copy make `new_with_array()` panic.
+// TODO If we ever need this for non-Copy, then split this, and for non-Copy make `new_with_array()` panic.
 impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
     for SliceStorage<'a, T, N>
 {
@@ -83,30 +88,37 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
     fn iter<'i>(&'i self) -> Self::ITER<'i> {
         self.shared_slice().iter()
     }
-    // Constructor functions.
+
+    // Ownership transfer constructors.
     fn from_shared_slice(slice: &'a [T]) -> Self {
+        #[cfg(feature = "size_for_array_or_vec_only")]
+        assert!(N == 0);
         Self::Shared(slice)
     }
     fn from_mutable_slice(slice: &'a mut [T]) -> Self {
         Self::Mutable(slice)
     }
     fn from_array(array: [T; N]) -> Self {
+        #[cfg(feature = "size_for_array_or_vec_only")]
+        assert!(N > 0);
+        // \---> TODO consider const N: Option<usize>, or a custom enum.
         Self::Array(array)
     }
+
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn from_vec(vector: Vec<T>) -> Self {
         Self::Vec(vector)
     }
+
+    // Constructors setting blank/default vaLues.
+    /// Implemented only if T: Copy + Default.
+    // Constructors setting blank/default vaLues.
     fn new_with_array() -> Self {
         Self::Array([T::default(); N])
     }
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn new_with_vec() -> Self {
-        Self::from_vec(if N > 0 {
-            Vec::with_capacity(N)
-        } else {
-            Vec::new()
-        })
+        Self::from_vec(Vec::with_capacity(N))
     }
 }
 
