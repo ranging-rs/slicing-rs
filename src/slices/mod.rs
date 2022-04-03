@@ -55,18 +55,12 @@ where
     /// Copy to a new array and create an instance with it.
     fn to_array_based(&self) -> Self
     where
-        Self: Sized,
-    {
-        todo!()
-    }
+        Self: Sized;
     /// Copy to a new vec and create an instance with it.
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn to_vec_based(&self) -> Self
     where
-        Self: Sized,
-    {
-        todo!()
-    }
+        Self: Sized;
     // Again, any need for the following? Couldn't we just pass a &mut to the existing (vec-based) Slice instance?
     // fn to_vec_ref_based(&mut self) -> Self
 
@@ -89,14 +83,16 @@ where
     Mutable(&'a mut [T]),
     /// Owned array. Suggested for stack & `no_std`.
     Array([T; N.unwrap_or(0)]),
-    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+
     /// Owned vector. For `std` only.
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
     Vec(Vec<T>),
+
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     VecRef(&'a mut Vec<T>),
 }
 
-// TODO If we ever need this for non-Copy, then split this, and for non-Copy make `new_with_array()` panic.
+// TODO If we ever need this for non-Copy, then split this, and for non-Copy make `new_with_array()` and `to_array_based` panic!().
 impl<'a, T: 'a + Copy + PartialEq + Default, const N: Option<usize>> Slice<'a, T, N>
     for SliceStorage<'a, T, N>
 where
@@ -158,11 +154,54 @@ where
         Self::Array([T::default(); N.unwrap_or(0)])
     }
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
-    fn new_with_vec() -> Self {
+    fn new_with_vec(size: usize) -> Self {
         #[cfg(feature = "size_for_owned_only")]
         assert!(N.is_none());
-        Self::from_vec(Vec::with_capacity(N.unwrap_or(0)))
+        Self::from_vec(Vec::with_capacity(size))
         // @TODO populate
+    }
+
+    fn to_array_based(&self) -> Self
+    where
+        Self: Sized,
+        [(); N.unwrap_or(0)]:,
+    {
+        assert!(N.is_some());
+        match self {
+            SliceStorage::Array(from) => {
+                let to = *from;
+                SliceStorage::Array(to)
+            }
+            SliceStorage::Shared(slice) => {
+                let mut to = [T::default(); N.unwrap_or(0)];
+                to.copy_from_slice(*slice);
+                SliceStorage::Array(to)
+            }
+            SliceStorage::Mutable(slice) => {
+                let mut to = [T::default(); N.unwrap_or(0)];
+                to.copy_from_slice(*slice);
+                SliceStorage::Array(to)
+            }
+            #[cfg(all(not(feature = "no_std"), feature = "std"))]
+            SliceStorage::Vec(vec) => {
+                let mut to = [T::default(); N.unwrap_or(0)];
+                to.copy_from_slice(vec);
+                SliceStorage::Array(to)
+            }
+            #[cfg(all(not(feature = "no_std"), feature = "std"))]
+            SliceStorage::VecRef(vec_ref) => {
+                let mut to = [T::default(); N.unwrap_or(0)];
+                to.copy_from_slice(*vec_ref);
+                SliceStorage::Array(to)
+            }
+        }
+    }
+    /// Copy to a new vec and create an instance with it.
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    fn to_vec_based(&self) -> Self
+    where
+        Self: Sized,
+    {
     }
 
     fn shared_slice<'s>(&'s self) -> &'s [T] {

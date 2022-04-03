@@ -100,6 +100,21 @@ where
         unimplemented!("Never") //@TODO Consider later.
     }
 
+    fn to_array_based(&self) -> Self
+    where
+        Self: Sized,
+    {
+        unimplemented!("Never")
+    }
+    /// Copy to a new vec and create an instance with it.
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    fn to_vec_based(&self) -> Self
+    where
+        Self: Sized,
+    {
+        unimplemented!("Never")
+    }
+
     fn shared_slice<'s>(&'s self) -> &'s [bool] {
         unimplemented!("Never")
     }
