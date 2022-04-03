@@ -106,6 +106,10 @@ where
     fn mutable_slice<'s>(&'s mut self) -> &'s mut [bool] {
         unimplemented!("Never")
     }
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<T> {
+        unimplemented!("Never")
+    }
 }
 
 /// Backed by a packed slice of bits (rounded up to bytes). That results not only in 8x less storage,  but in less cache & RAM bandidth => faster.

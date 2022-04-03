@@ -42,20 +42,17 @@ where
     /// Implemented only if T: Default.
     fn new_with_vec(size: usize) -> Self;
 
-    // Conversion constructors.
-    fn to_shared_based<'s>(&'s self) -> Self
+    // Reference/link-based constructors. Ever needed? Couldn't we just pass a shared/mutable reference to the existing Slice instance?
+    /*fn to_shared_based<'s>(&'s self) -> Self
     where
-        Self: 's + Sized,
-    {
-        todo!()
-    }
+        Self: 's + Sized;
     fn to_mutable_based<'s>(&'s mut self) -> Self
     where
-        Self: 's + Sized,
-    {
-        todo!()
-    }
+        Self: 's + Sized;*/
+
+    // Copy constructors.
     // @TODO Would `copy_to_array_based` be a better name?
+    /// Copy to a new array and create an instance with it.
     fn to_array_based(&self) -> Self
     where
         Self: Sized,
@@ -63,21 +60,22 @@ where
         todo!()
     }
     /// Copy to a new vec and create an instance with it.
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn to_vec_based(&self) -> Self
     where
         Self: Sized,
     {
         todo!()
     }
+    // Again, any need for the following? Couldn't we just pass a &mut to the existing (vec-based) Slice instance?
+    // fn to_vec_ref_based(&mut self) -> Self
 
     // Accessors
     fn shared_slice<'s>(&'s self) -> &'s [T];
     /// Implemented for all except for Shared-based slice.
     fn mutable_slice<'s>(&'s mut self) -> &'s mut [T];
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
-    fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<T> {
-        todo!()
-    }
+    fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<T>;
 }
 
 /// Const generic param `N` is used by `Slice::Array` only. (However, it makes all variants consume space. Hence:) Suggested for `no_std` only.
@@ -188,8 +186,18 @@ where
             SliceStorage::Vec(vec) => vec,
         }
     }
-}
 
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<T> {
+        match self {
+            SliceStorage::Vec(vec) => vec,
+            SliceStorage::VecRef(vec_ref) => *vec_ref,
+            _ => {
+                unimplemented!("Works for Vec and VecRef only.")
+            }
+        }
+    }
+}
 impl<'s, T: 's + Clone, const N: Option<usize>> Clone for SliceStorage<'s, T, N>
 where
     [(); N.unwrap_or(0)]:,
