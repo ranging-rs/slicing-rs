@@ -12,7 +12,7 @@ pub struct BoolFlagSet<
     T: 's + Clone + PartialEq,
     I: Indexer<T>,
     SL: Slice<'s, bool, N>,
-    const N: usize,
+    const N: Option<usize>,
 > {
     slice: SL,
     /// Stored owned, not by reference - good for CPU cache affinity.
@@ -26,7 +26,7 @@ impl<
         T: 's + Eq + Clone + Copy + Default,
         I: Indexer<T>,
         SL: 's + Slice<'s, bool, N> + Clone + NewLike,
-        const N: usize,
+        const N: Option<usize>,
     > crate::set::Set<T> for BoolFlagSet<'s, T, I, SL, N>
 where
     SL::ITER<'s>: 's,
@@ -62,7 +62,7 @@ impl<
         T: 's + Eq + Clone + Copy + Default,
         I: Indexer<T>,
         SL: Slice<'s, bool, N> + NewLike,
-        const N: usize,
+        const N: Option<usize>,
     > NewLike for BoolFlagSet<'s, T, I, SL, N>
 {
     fn new_like(&self) -> Self {
@@ -75,7 +75,7 @@ impl<
     }
 }
 
-impl<'s, T: Eq + Clone, I: Indexer<T>, SL: Slice<'s, bool, N> + Clone, const N: usize> Clone
+impl<'s, T: Eq + Clone, I: Indexer<T>, SL: Slice<'s, bool, N> + Clone, const N: Option<usize>> Clone
     for BoolFlagSet<'s, T, I, SL, N>
 {
     fn clone(&self) -> Self {
@@ -114,7 +114,7 @@ impl<'a, T: Clone, IND: Indexer<T>, SLIT: Iterator<Item = &'a bool>> Iterator
     }
 }
 
-impl<'s, T: 's + Eq + Clone + Default + Sub<T>, SL: Slice<'s, bool, N>, const N: usize>
+impl<'s, T: 's + Eq + Clone + Default + Sub<T>, SL: Slice<'s, bool, N>, const N: Option<usize>>
     BoolFlagSet<'s, T, RangeIndexer<T>, SL, N>
 where
     T: TryInto<usize>,

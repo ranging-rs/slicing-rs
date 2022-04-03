@@ -2,6 +2,10 @@
 #![feature(generic_associated_types)]
 #![feature(associated_type_bounds)]
 #![feature(associated_type_defaults)]
+#![feature(adt_const_params)]
+#![feature(generic_const_exprs)]
+#![feature(const_option)]
+#![feature(const_option_ext)]
 
 pub mod abstra;
 pub mod index;

@@ -1,9 +1,10 @@
 use crate::bool_flag::BoolFlagSet;
 use crate::slices::{ByteSlice, Slice};
 
-pub struct ByteSliceBoolStorage<'a, const N: usize>
+pub struct ByteSliceBoolStorage<'a, const N: Option<usize>>
 where
     Self: 'a,
+    [(); N.unwrap_or(0)]:,
 {
     byte_slice: ByteSlice<'a, N>,
 }
@@ -25,7 +26,10 @@ fn get_bit(byte: u8, bit_subindex: usize) -> bool {
     (byte & one_shifted) != 0
 }
 
-impl<'a, const N: usize> ByteSliceBoolStorage<'a, N> {
+impl<'a, const N: Option<usize>> ByteSliceBoolStorage<'a, N>
+where
+    [(); N.unwrap_or(0)]:,
+{
     /// Return (byte_index, old_byte, new_byte)
     fn dry_run_set(&self, index: usize, value: &bool) -> (usize, u8, u8) {
         let byte_index = index / 8;
@@ -41,7 +45,10 @@ impl<'a, const N: usize> ByteSliceBoolStorage<'a, N> {
     }
 }
 
-impl<'a, const N: usize> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
+impl<'a, const N: Option<usize>> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N>
+where
+    [(); N.unwrap_or(0)]:,
+{
     //type ITER<'s> = core::slice::Iter<'s, bool>
     type ITER<'s> = ByteSliceBoolIter<'s>
     where Self: 's;
@@ -70,7 +77,7 @@ impl<'a, const N: usize> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
     fn from_mutable_slice(_slice: &'a mut [bool]) -> Self {
         unimplemented!("Never")
     }
-    fn from_array(_array: [bool; N]) -> Self {
+    fn from_array(_array: [bool; N.unwrap_or(0)]) -> Self {
         unimplemented!("Never")
     }
 
@@ -92,7 +99,8 @@ impl<'a, const N: usize> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
 
 /// Backed by a packed slice of bits (rounded up to bytes). That results not only in 8x less storage,  but in less cache & RAM bandidth => faster.
 
-pub type Set<'s, T, I, const N: usize> = BoolFlagSet<'s, T, I, ByteSliceBoolStorage<'s, N>, N>;
+pub type Set<'s, T, I, const N: Option<usize>> =
+    BoolFlagSet<'s, T, I, ByteSliceBoolStorage<'s, N>, N>;
 
 pub struct ByteSliceBoolIter<'a> {
     /// Next index into current_byte. Always valid (<8) if `current_byte` is valid, too. It could be u8, but conversions would make the code cluttered.

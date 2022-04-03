@@ -5,7 +5,7 @@
 ///
 /// Param `N` = array size (if Some). Some(0) is also allowed (for empty arrays).
 /// Generally, use `N=None` for most `std` purposes, and for instantiation based on a given slice/vector. Use `N=Some(usize)` for owned array-based instantiation (often on stack, or in `non_std`).
-pub trait Slice<'a, T: 'a + Clone + PartialEq, const N: usize>
+pub trait Slice<'a, T: 'a + Clone + PartialEq, const N: Option<usize>>
 where
     Self: 'a,
 {
@@ -21,7 +21,7 @@ where
     // Ownership transfer constructors.
     fn from_shared_slice(slice: &'a [T]) -> Self;
     fn from_mutable_slice(slice: &'a mut [T]) -> Self;
-    fn from_array(array: [T; N]) -> Self;
+    fn from_array(array: [T; N.unwrap_or(0)]) -> Self;
 
     /// If `N.is_some()` then this checks the size of the given `vector`. Otherwise it takes `vector` as-is, and it marks `Self` instance as having runtime sized vec.
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
@@ -67,17 +67,23 @@ where
 /// Const generic param `N` is used by `Slice::Array` only. (However, it makes all variants consume space. Hence:) Suggested for `no_std` only.
 /// If you run in `std`, suggest passing 0 for `N`, and use `Slice::Vec` instead.
 #[derive(Debug)]
-pub enum SliceStorage<'a, T: 'a, const N: usize> {
+pub enum SliceStorage<'a, T: 'a, const N: Option<usize>>
+where
+    [(); N.unwrap_or(0)]:,
+{
     Shared(&'a [T]),
     Mutable(&'a mut [T]),
     /// Owned array. Suggested for stack & `no_std`.
-    Array([T; N]),
+    Array([T; N.unwrap_or(0)]),
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     /// Owned vector. For `std` only.
     Vec(Vec<T>),
 }
 
-impl<'s, T: 's, const N: usize> SliceStorage<'s, T, N> {
+impl<'s, T: 's, const N: Option<usize>> SliceStorage<'s, T, N>
+where
+    [(); N.unwrap_or(0)]:,
+{
     #[inline]
     pub fn shared_slice<'a>(&'a self) -> &'a [T] {
         match &self {
@@ -105,8 +111,10 @@ impl<'s, T: 's, const N: usize> SliceStorage<'s, T, N> {
 }
 
 // TODO If we ever need this for non-Copy, then split this, and for non-Copy make `new_with_array()` panic.
-impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
+impl<'a, T: 'a + Copy + PartialEq + Default, const N: Option<usize>> Slice<'a, T, N>
     for SliceStorage<'a, T, N>
+where
+    [(); N.unwrap_or(0)]:,
 {
     type ITER<'i> = core::slice::Iter<'i, T>
     where T: 'i, Self: 'i;
@@ -129,28 +137,24 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
     // Ownership transfer constructors.
     fn from_shared_slice(slice: &'a [T]) -> Self {
         #[cfg(feature = "size_for_owned_only")]
-        assert!(N == 0);
+        assert!(N.is_none());
         Self::Shared(slice)
     }
     fn from_mutable_slice(slice: &'a mut [T]) -> Self {
         #[cfg(feature = "size_for_owned_only")]
-        assert!(N == 0);
+        assert!(N.is_none());
         Self::Mutable(slice)
     }
-    fn from_array(array: [T; N]) -> Self {
-        assert!(Some(()).is_some() && N > 0);
-        #[cfg(feature = "size_for_owned_only")]
-        assert!(Some(()).is_some() && N > 0);
+    fn from_array(array: [T; N.unwrap_or(0)]) -> Self {
+        assert!(N.is_some());
         // \---> TODO consider const N: Option<usize>, or a custom enum.
         Self::Array(array)
     }
 
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn from_vec(vector: Vec<T>) -> Self {
-        /// @TODO runtime size instead
         #[cfg(feature = "size_for_owned_only")]
-        assert!(N > 0);
-        assert!(vector.len() == N);
+        assert!(N.is_none());
         Self::Vec(vector)
     }
 
@@ -159,19 +163,22 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
     // Constructors setting blank/default vaLues.
     fn new_with_array() -> Self {
         #[cfg(feature = "size_for_owned_only")]
-        assert!(N > 0);
-        Self::Array([T::default(); N])
+        assert!(N.is_none());
+        Self::Array([T::default(); N.unwrap_or(0)])
     }
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn new_with_vec() -> Self {
         #[cfg(feature = "size_for_owned_only")]
-        assert!(N > 0);
-        Self::from_vec(Vec::with_capacity(N))
+        assert!(N.is_none());
+        Self::from_vec(Vec::with_capacity(N.unwrap_or(0)))
         // @TODO populate
     }
 }
 
-impl<'s, T: 's + Clone, const N: usize> Clone for SliceStorage<'s, T, N> {
+impl<'s, T: 's + Clone, const N: Option<usize>> Clone for SliceStorage<'s, T, N>
+where
+    [(); N.unwrap_or(0)]:,
+{
     /// Implemented for Array-backed and Vec-backed slice only.
     fn clone(&self) -> Self {
         match self {
@@ -185,8 +192,10 @@ impl<'s, T: 's + Clone, const N: usize> Clone for SliceStorage<'s, T, N> {
     }
 }
 
-impl<'s, T: 's + Clone + Copy + Default, const N: usize> crate::abstra::NewLike
+impl<'s, T: 's + Clone + Copy + Default, const N: Option<usize>> crate::abstra::NewLike
     for SliceStorage<'s, T, N>
+where
+    [(); N.unwrap_or(0)]:,
 {
     /// Implemented for Shared-backed, Array-backed and Vec-backed SliceStorage only.
     fn new_like(&self) -> Self {
@@ -195,16 +204,12 @@ impl<'s, T: 's + Clone + Copy + Default, const N: usize> crate::abstra::NewLike
             SliceStorage::Mutable(_) => {
                 unimplemented!("Can't clone a slice.")
             }
-            SliceStorage::Array(_) => SliceStorage::Array([T::default(); N]),
+            SliceStorage::Array(_) => SliceStorage::Array([T::default(); N.unwrap_or(0)]),
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
-            SliceStorage::Vec(_) => SliceStorage::Vec(if N > 0 {
-                Vec::with_capacity(N)
-            } else {
-                Vec::new()
-            }),
+            SliceStorage::Vec(_) => SliceStorage::Vec(Vec::with_capacity(N.unwrap_or(0))),
         }
     }
 }
 
-pub type BoolSlice<'a, const N: usize> = SliceStorage<'a, bool, N>;
-pub type ByteSlice<'a, const N: usize> = SliceStorage<'a, u8, N>;
+pub type BoolSlice<'a, const N: Option<usize>> = SliceStorage<'a, bool, N>;
+pub type ByteSlice<'a, const N: Option<usize>> = SliceStorage<'a, u8, N>;
