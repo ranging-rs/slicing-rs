@@ -86,14 +86,25 @@ where
         unimplemented!("Never")
     }
 
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    fn for_vec(vector: &'a mut Vec<bool>) -> Self {
+        unimplemented!("Never")
+    }
+
     // Constructors setting blank/default vaLues.
-    /// Implemented only if T: Copy + Default.
     fn new_with_array() -> Self {
         unimplemented!("Never") //@TODO Consider later.
     }
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
-    fn new_with_vec() -> Self {
+    fn new_with_vec(size: usize) -> Self {
         unimplemented!("Never") //@TODO Consider later.
+    }
+
+    fn shared_slice<'s>(&'s self) -> &'s [bool] {
+        unimplemented!("Never")
+    }
+    fn mutable_slice<'s>(&'s mut self) -> &'s mut [bool] {
+        unimplemented!("Never")
     }
 }
 

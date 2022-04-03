@@ -1,12 +1,10 @@
-/// Helpers for (unpacked) bool slice.
+/// Helpers for (unpacked) bool slice. Used both by tests in this project, and by tests in `no_std/` project.
 pub mod bool_slice {
     use ranging::slices::BoolSlice;
     use ranging::slices::Slice;
     use ranging::slices::SliceStorage;
 
-    /// Assert that `bool_slice` has size 2 and contains `true`, `false` in that order.
-    /// Param `slice` is not an array (of type `[bool; N]`), but a slice, for flexibility.
-    //pub fn assert_equal_items<const N: usize>(bool_slice: &BoolSlice<Some(N)>, slice: &[bool]) {
+    /// Assert that `bool_based_slice` has same size and items as `slice`.
     pub fn assert_equal_items<const N: Option<usize>>(
         bool_based_slice: &SliceStorage<bool, N>,
         slice: &[bool],

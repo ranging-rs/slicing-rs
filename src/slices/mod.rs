@@ -23,9 +23,16 @@ where
     fn from_mutable_slice(slice: &'a mut [T]) -> Self;
     fn from_array(array: [T; N.unwrap_or(0)]) -> Self;
 
-    /// If `N.is_some()` then this checks the size of the given `vector`. Otherwise it takes `vector` as-is, and it marks `Self` instance as having runtime sized vec.
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn from_vec(vector: Vec<T>) -> Self;
+
+    /// Non-transfer constructor referring to a given `vector`.
+    /// The only benefit of this function, as compared to `from_mutable_slice`,
+    /// is that we can call `mutable_vec` on this instance.
+    /// This function doesn't need a shared/immutable alternative - for that
+    /// use simple `from_shared_slice`.
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    fn for_vec(vector: &'a mut Vec<T>) -> Self;
 
     // Constructors setting blank/default vaLues.
     /// Implemented only if T: Copy + Default.
@@ -62,6 +69,15 @@ where
     {
         todo!()
     }
+
+    // Accessors
+    fn shared_slice<'s>(&'s self) -> &'s [T];
+    /// Implemented for all except for Shared-based slice.
+    fn mutable_slice<'s>(&'s mut self) -> &'s mut [T];
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<T> {
+        todo!()
+    }
 }
 
 /// Const generic param `N` is used by `Slice::Array` only. (However, it makes all variants consume space. Hence:) Suggested for `no_std` only.
@@ -78,36 +94,8 @@ where
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     /// Owned vector. For `std` only.
     Vec(Vec<T>),
-}
-
-impl<'s, T: 's, const N: Option<usize>> SliceStorage<'s, T, N>
-where
-    [(); N.unwrap_or(0)]:,
-{
-    #[inline]
-    pub fn shared_slice<'a>(&'a self) -> &'a [T] {
-        match &self {
-            SliceStorage::Shared(slice) => slice,
-            SliceStorage::Mutable(slice) => slice,
-            SliceStorage::Array(array) => array,
-            #[cfg(all(not(feature = "no_std"), feature = "std"))]
-            SliceStorage::Vec(vec) => vec,
-        }
-    }
-
-    #[inline]
-    /// Implemented for all except for Shared-based slice.
-    pub fn mutable_slice<'a>(&'a mut self) -> &'a mut [T] {
-        match self {
-            SliceStorage::Shared(_) => {
-                unimplemented!("Can't get a mutable slice from a shared slice.")
-            }
-            SliceStorage::Mutable(slice) => slice,
-            SliceStorage::Array(array) => array,
-            #[cfg(all(not(feature = "no_std"), feature = "std"))]
-            SliceStorage::Vec(vec) => vec,
-        }
-    }
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    VecRef(&'a mut Vec<T>),
 }
 
 // TODO If we ever need this for non-Copy, then split this, and for non-Copy make `new_with_array()` panic.
@@ -158,6 +146,11 @@ where
         Self::Vec(vector)
     }
 
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    fn for_vec(vector: &'a mut Vec<T>) -> Self {
+        Self::VecRef(vector)
+    }
+
     // Constructors setting blank/default vaLues.
     /// Implemented only if T: Copy + Default.
     // Constructors setting blank/default vaLues.
@@ -172,6 +165,28 @@ where
         assert!(N.is_none());
         Self::from_vec(Vec::with_capacity(N.unwrap_or(0)))
         // @TODO populate
+    }
+
+    fn shared_slice<'s>(&'s self) -> &'s [T] {
+        match &self {
+            SliceStorage::Shared(slice) => slice,
+            SliceStorage::Mutable(slice) => slice,
+            SliceStorage::Array(array) => array,
+            #[cfg(all(not(feature = "no_std"), feature = "std"))]
+            SliceStorage::Vec(vec) => vec,
+        }
+    }
+
+    fn mutable_slice<'s>(&'s mut self) -> &'s mut [T] {
+        match self {
+            SliceStorage::Shared(_) => {
+                unimplemented!("Can't get a mutable slice from a shared slice.")
+            }
+            SliceStorage::Mutable(slice) => slice,
+            SliceStorage::Array(array) => array,
+            #[cfg(all(not(feature = "no_std"), feature = "std"))]
+            SliceStorage::Vec(vec) => vec,
+        }
     }
 }
 
