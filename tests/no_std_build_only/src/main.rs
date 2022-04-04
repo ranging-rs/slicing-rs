@@ -1,5 +1,5 @@
 // Thanks to https://blog.dbrgn.ch/2019/12/24/testing-for-no-std-compatibility
-// \--> "ensure_no_std"
+// \--> ensure_no_std
 #![no_std]
 #![no_main]
 

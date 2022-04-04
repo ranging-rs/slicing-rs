@@ -8,13 +8,13 @@ pub mod slices;
 
 struct WithGenericBeingNumber<const N: usize> {}
 
-struct WithGenericBeingOption<const N: Option<usize>> {}
+struct WithGenericBeingOption<const N: usize> {}
 
 fn use_const_generic_types() {
     let number_based = WithGenericBeingNumber::<1> {}; //this works.
 
     // But all the below fail (with current nightly):
-    let option_based = WithGenericBeingOption::<{ Some(2) }> {};
-    let option_based = WithGenericBeingOption::<{ Some(3) }> {};
-    let option_based = WithGenericBeingOption::<{ Some(4) }> {};
+    let option_based = WithGenericBeingOption::<2> {};
+    let option_based = WithGenericBeingOption::<3> {};
+    let option_based = WithGenericBeingOption::<4> {};
 }

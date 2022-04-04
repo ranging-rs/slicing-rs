@@ -40,7 +40,22 @@
 ///  the client. Those two rules will guide you to:
 /// - use given non-zero `N` only for array-based purposes (often on stack, or in `non_std`). Otherwise use `SliceStorage<T, 0>` for pathways based on a slice/vector.
 /// - use `as_non_array_***` methods whenever possible.
-pub trait Slice<'a, T: 'a + Clone + PartialEq, const N: Option<usize>>
+///
+/// `Slice` (and it implementations) don't have `const N: usize`. That
+///  would allow  granular (per generic type instance) intent as to whether the
+///  specific type (for its chosen `N`) allows arrays of the given size
+///  (whether zero or not), or whether it disables its array-based variant.
+/// However, that required extra bounds like `where [(); N.unwrap_or(0)]:`,
+/// not only in the `trait`s and `struct`s & `impl`, but also in any client
+/// code! Very unergonomic.
+/// Hence we have `const N: usize` instead. That means that specific types can't
+/// control/vary in whether they disable any array or whether they enable empty
+/// arrays. Such difference is possible only globally with crate features
+///  `allow_empty_arrays` & `disable_empty_arrays`. Those two features are
+/// mutually exclusive. If none of them is set, then with `N = 0` you can use
+/// both empty arrays (array-based variant) and, of course, any non-array
+/// variants (as applicable according to your `std or `non_std`).
+pub trait Slice<'a, T: 'a + Clone + PartialEq, const N: usize>
 where
     Self: 'a,
 {
@@ -62,7 +77,7 @@ where
     // Ownership transfer constructors.
     fn from_shared_slice(slice: &'a [T]) -> Self;
     fn from_mutable_slice(slice: &'a mut [T]) -> Self;
-    fn from_array(array: [T; N.unwrap_or(0)]) -> Self;
+    fn from_array(array: [T; N]) -> Self;
 
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn from_vec(vector: Vec<T>) -> Self;
@@ -120,14 +135,11 @@ where
 /// Const generic param `N` is used by `Slice::Array` only. (However, it makes all variants consume space. Hence:) Suggested for `no_std` only.
 /// If you run in `std`, suggest passing 0 for `N`, and use `Slice::Vec` instead.
 #[derive(Debug)]
-pub enum SliceStorage<'a, T: 'a, const N: Option<usize>>
-where
-    [(); N.unwrap_or(0)]:,
-{
+pub enum SliceStorage<'a, T: 'a, const N: usize> {
     Shared(&'a [T]),
     Mutable(&'a mut [T]),
     /// Owned array. Suggested for stack & `no_std`.
-    Array([T; N.unwrap_or(0)]),
+    Array([T; N]),
 
     /// Owned vector. For `std` only.
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
@@ -138,15 +150,13 @@ where
 }
 
 // TODO If we ever need this for non-Copy, then split this, and for non-Copy make `new_with_array()` and `to_array_based` panic!().
-impl<'a, T: 'a + Copy + PartialEq + Default, const N: Option<usize>> Slice<'a, T, N>
+impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
     for SliceStorage<'a, T, N>
-where
-    [(); N.unwrap_or(0)]:,
 {
     type ITER<'i> = core::slice::Iter<'i, T>
     where T: 'i, Self: 'i;
 
-    //type NARR<'b, U: 'b + Clone + PartialEq> = SliceStorage<'b, U, {Some(0)}> where [(); Some(0).unwrap_or(0)]:;
+    //type NARR<'b, U: 'b + Clone + PartialEq> = SliceStorage<'b, U, 0>;
 
     fn get(&self, index: usize) -> T {
         self.shared_slice()[index].clone()
@@ -175,9 +185,9 @@ where
         assert!(N.is_none());
         Self::Mutable(slice)
     }
-    fn from_array(array: [T; N.unwrap_or(0)]) -> Self {
-        assert!(N.is_some());
-        // \---> TODO consider const N: Option<usize>, or a custom enum.
+    fn from_array(array: [T; N]) -> Self {
+        #[cfg(feature = "disable_empty_arrays")]
+        assert!(N > 0);
         Self::Array(array)
     }
 
@@ -199,7 +209,7 @@ where
     fn new_with_array() -> Self {
         #[cfg(feature = "size_for_array_only")]
         assert!(N.is_none());
-        Self::Array([T::default(); N.unwrap_or(0)])
+        Self::Array([T::default(); N])
     }
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn new_with_vec(size: usize) -> Self {
@@ -210,35 +220,34 @@ where
     }
 
     fn to_array_based(&self) -> Self
-    where
-        Self: Sized,
-        [(); N.unwrap_or(0)]:,
+// where   Self: Sized,
     {
-        assert!(N.is_some());
+        #[cfg(feature = "disable_empty_arrays")]
+        assert!(N > 0);
         match self {
             SliceStorage::Array(from) => {
                 let to = *from;
                 SliceStorage::Array(to)
             }
             SliceStorage::Shared(slice) => {
-                let mut to = [T::default(); N.unwrap_or(0)];
+                let mut to = [T::default(); N];
                 to.copy_from_slice(*slice);
                 SliceStorage::Array(to)
             }
             SliceStorage::Mutable(slice) => {
-                let mut to = [T::default(); N.unwrap_or(0)];
+                let mut to = [T::default(); N];
                 to.copy_from_slice(*slice);
                 SliceStorage::Array(to)
             }
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
             SliceStorage::Vec(vec) => {
-                let mut to = [T::default(); N.unwrap_or(0)];
+                let mut to = [T::default(); N];
                 to.copy_from_slice(vec);
                 SliceStorage::Array(to)
             }
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
             SliceStorage::VecRef(vec_ref) => {
-                let mut to = [T::default(); N.unwrap_or(0)];
+                let mut to = [T::default(); N];
                 to.copy_from_slice(*vec_ref);
                 SliceStorage::Array(to)
             }
@@ -290,10 +299,7 @@ where
         }
     }
 }
-impl<'s, T: 's + Clone, const N: Option<usize>> Clone for SliceStorage<'s, T, N>
-where
-    [(); N.unwrap_or(0)]:,
-{
+impl<'s, T: 's + Clone, const N: usize> Clone for SliceStorage<'s, T, N> {
     /// Implemented for Array-backed and Vec-backed SliceStorage only. For Vec (mutable) reference-backed SliceStorage this creates a new, owned Vec-based instance.
     fn clone(&self) -> Self {
         match self {
@@ -313,10 +319,8 @@ where
     }
 }
 
-impl<'s, T: 's + Clone + Copy + Default, const N: Option<usize>> crate::abstra::NewLike
+impl<'s, T: 's + Clone + Copy + Default, const N: usize> crate::abstra::NewLike
     for SliceStorage<'s, T, N>
-where
-    [(); N.unwrap_or(0)]:,
 {
     /// Implemented for Shared-backed, Array-backed and Vec-backed SliceStorage only.
     fn new_like(&self) -> Self {
@@ -325,7 +329,7 @@ where
             SliceStorage::Mutable(_) => {
                 unimplemented!("Can't clone a slice.")
             }
-            SliceStorage::Array(_) => SliceStorage::Array([T::default(); N.unwrap_or(0)]),
+            SliceStorage::Array(_) => SliceStorage::Array([T::default(); N]),
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
             SliceStorage::Vec(vec) => SliceStorage::Vec(Vec::with_capacity(vec.len())),
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
@@ -336,5 +340,5 @@ where
     }
 }
 
-pub type BoolSlice<'a, const N: Option<usize>> = SliceStorage<'a, bool, N>;
-pub type ByteSlice<'a, const N: Option<usize>> = SliceStorage<'a, u8, N>;
+pub type BoolSlice<'a, const N: usize> = SliceStorage<'a, bool, N>;
+pub type ByteSlice<'a, const N: usize> = SliceStorage<'a, u8, N>;
