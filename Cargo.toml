@@ -17,9 +17,10 @@ size_for_owned_only = []
 ## default = ["std"]
 
 [dependencies]
+
 # Do not have a test-based workspace. It upset both
 # - `cargo test --workspace` for tests/ok_std
 #    (even though `cargo test --package ok_std` worked fine), and
-# - Rust Analyzer for ranging crate itself.
+# - Rust Analyzer for the root crate (ranging) itself.
 #[workspace]
 #members = ["tests/*"]

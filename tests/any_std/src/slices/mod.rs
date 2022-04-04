@@ -10,6 +10,7 @@ pub mod bool_slice {
         slice: &[bool],
     ) where
         [(); N.unwrap_or(0)]:,
+        //where [(); N.unwrap_or(0)]:,
     {
         let inner_slice = bool_based_slice.shared_slice();
         assert_eq!(inner_slice.len(), slice.len());

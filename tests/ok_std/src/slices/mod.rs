@@ -11,7 +11,7 @@ mod bool_slice_tests {
         any_std::slices::bool_slice::construct_from_existing_data();
 
         let vector = vec![true, false];
-        assert_equal_items(&<BoolSlice<2>>::from_vec(vector), &[true, false]);
+        assert_equal_items(&<BoolSlice<{ Some(2) }>>::from_vec(vector), &[true, false]);
     }
 
     #[test]
@@ -21,17 +21,18 @@ mod bool_slice_tests {
 
     #[test]
     /// Test that `SliceStorage::new_with_vec()` is empty, regardless of const generic param N.
+    /// TODO check the size against the param to `new_with_vec`
     fn new_with_vec_is_empty() {
-        let bool_slice = <BoolSlice<0>>::new_with_vec();
+        let bool_slice = BoolSlice::<{ Some(0) }>::new_with_vec(0);
         assert!(bool_slice.shared_slice().is_empty());
         assert_equal_items(&bool_slice, &[]);
 
-        let bool_slice = <BoolSlice<2>>::new_with_vec();
+        let bool_slice = <BoolSlice<{ Some(2) }>>::new_with_vec(2);
         assert!(bool_slice.shared_slice().is_empty());
         assert_equal_items(&bool_slice, &[]);
 
         let vec_of_four = Vec::<u32>::with_capacity(4);
-        assert!(vec_of_four.capacity()>=4);
+        assert!(vec_of_four.capacity() >= 4);
         //println!("vec_of_four: {}", vec_of_four.len());
         //assert!(false)
     }

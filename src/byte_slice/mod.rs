@@ -122,7 +122,7 @@ where
         unimplemented!("Never")
     }
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
-    fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<T> {
+    fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<bool> {
         unimplemented!("Never")
     }
 }

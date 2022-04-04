@@ -202,6 +202,7 @@ where
     where
         Self: Sized,
     {
+        todo!()
     }
 
     fn shared_slice<'s>(&'s self) -> &'s [T] {
@@ -211,6 +212,8 @@ where
             SliceStorage::Array(array) => array,
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
             SliceStorage::Vec(vec) => vec,
+            #[cfg(all(not(feature = "no_std"), feature = "std"))]
+            SliceStorage::VecRef(vec_ref) => *vec_ref,
         }
     }
 
@@ -223,6 +226,8 @@ where
             SliceStorage::Array(array) => array,
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
             SliceStorage::Vec(vec) => vec,
+            #[cfg(all(not(feature = "no_std"), feature = "std"))]
+            SliceStorage::VecRef(vec_ref) => *vec_ref,
         }
     }
 
@@ -241,15 +246,21 @@ impl<'s, T: 's + Clone, const N: Option<usize>> Clone for SliceStorage<'s, T, N>
 where
     [(); N.unwrap_or(0)]:,
 {
-    /// Implemented for Array-backed and Vec-backed slice only.
+    /// Implemented for Array-backed and Vec-backed SliceStorage only. For Vec (mutable) reference-backed SliceStorage this creates a new, owned Vec-based instance.
     fn clone(&self) -> Self {
         match self {
-            SliceStorage::Shared(_) | SliceStorage::Mutable(_) => {
-                unimplemented!("Can't clone a slice.")
+            SliceStorage::Shared(_) => {
+                unimplemented!("Don't clone a shared slice-backed SliceStorage. Instead, pass a shared reference to it.")
+            }
+            SliceStorage::Mutable(_) => {
+                unimplemented!("Can't clone a mutable slice.")
             }
             SliceStorage::Array(array) => SliceStorage::Array(array.clone()),
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
             SliceStorage::Vec(vec) => SliceStorage::Vec(vec.clone()),
+            // Can't clone a mutable reference. Clone the vector itself.
+            #[cfg(all(not(feature = "no_std"), feature = "std"))]
+            SliceStorage::VecRef(vec_ref) => SliceStorage::Vec((*vec_ref).clone()),
         }
     }
 }
@@ -268,7 +279,11 @@ where
             }
             SliceStorage::Array(_) => SliceStorage::Array([T::default(); N.unwrap_or(0)]),
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
-            SliceStorage::Vec(_) => SliceStorage::Vec(Vec::with_capacity(N.unwrap_or(0))),
+            SliceStorage::Vec(vec) => SliceStorage::Vec(Vec::with_capacity(vec.len())),
+            #[cfg(all(not(feature = "no_std"), feature = "std"))]
+            SliceStorage::VecRef(vec_ref) => {
+                SliceStorage::Vec(Vec::with_capacity((*vec_ref).len()))
+            }
         }
     }
 }
