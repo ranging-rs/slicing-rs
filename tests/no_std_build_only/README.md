@@ -1,4 +1,7 @@
-# Test `no_std` compatibility of dependencies
+# Test `no_std` build compatibility (but don't run tests themselves).
+
+After looking at https://crates.io/crates/trybuild, https://crates.io/crates/compiletest_rs and https://crates.io/crates/cargo-nono, this is the fastest way.
+
 Run: `cargo rustc -- -C link-arg=-nostartfiles`
 
 For GitHub Actions use
