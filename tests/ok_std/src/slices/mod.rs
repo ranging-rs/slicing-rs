@@ -11,7 +11,7 @@ mod bool_slice_tests {
         any_std::slices::bool_slice::construct_from_existing_data();
 
         let vector = vec![true, false];
-        assert_equal_items(&<BoolSlice<{ Some(2) }>>::from_vec(vector), &[true, false]);
+        assert_equal_items(&<BoolSlice<2>>::from_vec(vector), &[true, false]);
     }
 
     #[test]
