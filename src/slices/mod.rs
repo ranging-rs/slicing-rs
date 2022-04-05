@@ -1,4 +1,10 @@
-/// Slice/array/vector-based container.
+/// Slice/array/vector-based container, with extra abstractions. You can use it
+/// on its own.
+/// The extra abstractions make it compatible with (limited) hash
+/// set/hash map. Slice or hash set/hash then serve as pluggable in
+/// (range-based) `ranging::byte_slice::ByteSliceBoolStorage` and in
+/// implementations of `ranging::set::Set` and `ranging::map::Map`.
+///
 /// If array-based, the size is fixed at compile time through a const generic param `N`.
 /// If slice-based or vec-based, its size can be any, as given at runtime. But for shared/mutable slice-based instances the size is fixed at instantiation.
 /// Vec-based instances can be resized.
@@ -34,6 +40,11 @@
 /// (for `SliceStorage::Array`) and we allow all other variants (as applicable
 /// according to `std` or `no_std`), too.
 ///
+/// # Naming convention for methods:
+/// - `as_***()` means conversion (sharing), but not a copy
+/// - `to_***()` means a copy.
+///
+/// # Array size `N` and zero sized arrays
 /// Generally,
 /// - test your crate with feature `size_for_array_only` enabled, and
 /// - don't hard code any non-zero `N` (unless sure), but have it come from
@@ -60,12 +71,10 @@ where
     Self: 'a,
 {
     type ITER<'i>: Iterator<Item = &'i T> = core::slice::Iter<'i, T> where T: 'i, Self: 'i;
+
     /// Like Self, but with size 0. Used for conversion functions that return
     /// or accept a Slice type with size 0. `NARR` means NON_ARRAY.
-    //type NARR<'b, U: 'b + Clone + PartialEq>: Slice<'b, U, {Some(0)}> where Self: 'b, U: 'a;
-    // Naming convention for methods: `as_***()` means conversion (sharing) but
-    // not a copy. `to_***()` means a copy.
-    //fn as_non_array_vec_based<'s>(&'s self) -> Self::NARR<'s, T> {todo!()}
+    type NARR: Slice<'a, T, 0>;
 
     fn get(&self, index: usize) -> T;
     /// Set the value. Return true if this value was not present. (Based on std::collections::HashSet.)
@@ -100,29 +109,23 @@ where
 
     // Reference/link-based constructors. Ever needed? Couldn't we just pass a shared/mutable reference to the existing Slice instance?
     /*fn to_shared_based<'s>(&'s self) -> Self
-    where
-        Self: 's + Sized;
     fn to_mutable_based<'s>(&'s mut self) -> Self
-    where
-        Self: 's + Sized;*/
+    */
 
     // Copy constructors.
     /// Copy to a new array and create an instance with it.
-    fn to_array_based(&self) -> Self
-    where
-        Self: Sized;
+    fn to_array_based(&self) -> Self;
+
     // @TODO Would `copy_to_vec_based` be a better name?
     /// Copy to a new vec and create an instance with it.
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
-    fn to_vec_based(&self) -> Self
-    where
-        Self: Sized;
+    fn to_vec_based(&self) -> Self;
+
     // Again, any need for the following? Couldn't we just pass a &mut to the existing (vec-based) Slice instance?
     // fn to_vec_ref_based(&mut self) -> Self
 
-    // @TODO
-    // type SELF<NN> where Self: SELF<N>;
-    //fn to_non_array_vec_based(&self) -> Self::SELF<0>;
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    fn to_non_array_vec_based(&self) -> Self::NARR;
 
     // Accessors
     fn shared_slice<'s>(&'s self) -> &'s [T];
@@ -156,7 +159,7 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
     type ITER<'i> = core::slice::Iter<'i, T>
     where T: 'i, Self: 'i;
 
-    //type NARR<'b, U: 'b + Clone + PartialEq> = SliceStorage<'b, U, 0>;
+    type NARR = SliceStorage<'a, T, 0>;
 
     fn get(&self, index: usize) -> T {
         self.shared_slice()[index].clone()
@@ -219,9 +222,7 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
         // @TODO populate
     }
 
-    fn to_array_based(&self) -> Self
-// where   Self: Sized,
-    {
+    fn to_array_based(&self) -> Self {
         #[cfg(feature = "disable_empty_arrays")]
         assert!(N > 0);
         match self {
@@ -253,15 +254,18 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
             }
         }
     }
-    /// Copy to a new vec and create an instance with it.
+
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
-    fn to_vec_based(&self) -> Self
-    where
-        Self: Sized,
-    {
+    fn to_vec_based(&self) -> Self {
         todo!()
     }
 
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    fn to_non_array_vec_based(&self) -> Self::NARR {
+        Self::NARR::Vec(vec![]) //@TODO
+    }
+
+    // Accessors
     fn shared_slice<'s>(&'s self) -> &'s [T] {
         match &self {
             SliceStorage::Shared(slice) => slice,

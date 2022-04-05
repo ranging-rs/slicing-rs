@@ -5,7 +5,7 @@
 
 // cargo rustc -- -C link-arg=-nostartfiles
 #[allow(unused_imports)]
-use ranging;
+use ranging; // No need to include all submodules - cargo will load them all anyway.
 
 use core::panic::PanicInfo;
 

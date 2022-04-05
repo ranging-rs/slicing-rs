@@ -23,11 +23,11 @@ mod bool_slice_tests {
     /// Test that `SliceStorage::new_with_vec()` is empty, regardless of const generic param N.
     /// TODO check the size against the param to `new_with_vec`
     fn new_with_vec_is_empty() {
-        let bool_slice = BoolSlice::<{ Some(0) }>::new_with_vec(0);
+        let bool_slice = BoolSlice::<0>::new_with_vec(0);
         assert!(bool_slice.shared_slice().is_empty());
         assert_equal_items(&bool_slice, &[]);
 
-        let bool_slice = <BoolSlice<{ Some(2) }>>::new_with_vec(2);
+        let bool_slice = <BoolSlice<2>>::new_with_vec(2);
         assert!(bool_slice.shared_slice().is_empty());
         assert_equal_items(&bool_slice, &[]);
 

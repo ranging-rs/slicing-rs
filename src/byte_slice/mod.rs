@@ -42,9 +42,11 @@ impl<'a, const N: usize> ByteSliceBoolStorage<'a, N> {
 }
 
 impl<'a, const N: usize> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
-    //type ITER<'s> = core::slice::Iter<'s, bool>
     type ITER<'s> = ByteSliceBoolIter<'s>
     where Self: 's;
+
+    type NARR = ByteSliceBoolStorage<'a, 0>;
+
     fn get(&self, index: usize) -> bool {
         let byte = self.byte_slice.get(index / 8);
         get_bit(byte, index % 8)
@@ -93,21 +95,23 @@ impl<'a, const N: usize> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
         unimplemented!("Never") //@TODO Consider later.
     }
 
-    fn to_array_based(&self) -> Self
-    where
-        Self: Sized,
-    {
-        unimplemented!("Never")
-    }
-    /// Copy to a new vec and create an instance with it.
-    #[cfg(all(not(feature = "no_std"), feature = "std"))]
-    fn to_vec_based(&self) -> Self
-    where
-        Self: Sized,
-    {
+    fn to_array_based(&self) -> Self {
         unimplemented!("Never")
     }
 
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    fn to_vec_based(&self) -> Self {
+        unimplemented!("Never")
+    }
+
+    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    fn to_non_array_vec_based(&self) -> Self::NARR {
+        ByteSliceBoolStorage {
+            byte_slice: ByteSlice::<0>::Vec(vec![]), //@TODO
+        }
+    }
+
+    // Accessors
     fn shared_slice<'s>(&'s self) -> &'s [bool] {
         unimplemented!("Never")
     }
