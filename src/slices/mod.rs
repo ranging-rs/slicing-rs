@@ -72,8 +72,12 @@ where
 {
     type ITER<'i>: Iterator<Item = &'i T> = core::slice::Iter<'i, T> where T: 'i, Self: 'i;
 
-    /// Like Self, but with size 0. Used for conversion functions that return
-    /// or accept a Slice type with size 0. `NARR` means NON_ARRAY.
+    /// Like Self, but with size 0. `NARR` means NON_ARRAY. It serves for
+    /// conversion functions that return or accept the same a Slice
+    /// implementation type as `Self` but with size 0.
+    /// There's no way, and no need, to correlate `NARR` and `Self` here any
+    /// closer (even though those types are related). It's the semantics/
+    /// convention that matters.
     type NARR: Slice<'a, T, 0>;
 
     fn get(&self, index: usize) -> T;
@@ -262,7 +266,22 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
 
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn to_non_array_vec_based(&self) -> Self::NARR {
-        Self::NARR::Vec(vec![]) //@TODO
+        let v: Vec<T>;
+        if let Self::Mutable(mutable_slice) = self {
+            v = Vec::from_iter(mutable_slice.iter().cloned());
+        } else {
+            let slice = match self {
+                Self::Array(array) => array,
+                Self::Shared(shared_slice) => *shared_slice,
+                #[cfg(all(not(feature = "no_std"), feature = "std"))]
+                Self::Vec(vec) => vec,
+                #[cfg(all(not(feature = "no_std"), feature = "std"))]
+                Self::VecRef(vec_ref) => *vec_ref,
+                _ => unreachable!(),
+            };
+            v = Vec::from_iter(slice.iter().cloned());
+        }
+        Self::NARR::Vec(v)
     }
 
     // Accessors
