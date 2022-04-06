@@ -1,13 +1,36 @@
 // Thanks to https://blog.dbrgn.ch/2019/12/24/testing-for-no-std-compatibility
 // \--> ensure_no_std
+/* Build by:
+cargo rustc -- -C link-arg=-nostartfiles
+*/
 #![no_std]
 #![no_main]
+#![feature(default_alloc_error_handler)]
 
-// cargo rustc -- -C link-arg=-nostartfiles
-#[allow(unused_imports)]
+extern crate alloc;
+//extern crate collections;
+//use core::collections; // @TODO <- figure out
+use alloc::boxed::Box;
+
+#[allow(unused_imports)] //@TODO <- remove later
 use ranging; // No need to include all submodules - cargo will load them all anyway.
 
+use core::alloc::{GlobalAlloc, Layout};
 use core::panic::PanicInfo;
+
+struct DummyAllocator {}
+
+#[global_allocator]
+static ALLOCATOR: DummyAllocator = DummyAllocator {};
+
+unsafe impl Sync for DummyAllocator {}
+
+unsafe impl GlobalAlloc for DummyAllocator {
+    unsafe fn alloc(&self, _layout: Layout) -> *mut u8 {
+        unimplemented!()
+    }
+    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {}
+}
 
 /// This function is called on panic.
 #[panic_handler]

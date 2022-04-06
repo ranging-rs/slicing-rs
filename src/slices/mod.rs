@@ -135,15 +135,15 @@ where
     }
 
     // Populating constructors - creating an instance that owns the data.
-    // @TODO size as an Option<usize> - depending on whether for Vec/VecRef?
     // @TODO And/Or:
     // from_value(storage_type) for Array|ArrayBox, and
     // from_value_to_vec(size), OR
-    //       \\\ <-- Good for auto-complete. But vec is more common than array.
-    // from_value_to_array(storage_type, value) for Array|ArrayBox, or
-    // from_value_to_array and
-    // from_value_to_box_array AND
-    // from_value(value, size), or
+    //       \\\ <-- Good for auto-complete. (Unlike vec_from_value(...))
+    //       But vec is more common than array. Hence:
+    // from_value_to_array(value) and
+    // from_value_to_box_array(value)
+    // AND
+    // from_value(value, size)  -> owned vec
     // --> @TODO add to README.md.
     fn from_value(storage_type: SliceStorageType, size: usize) -> Self
     where

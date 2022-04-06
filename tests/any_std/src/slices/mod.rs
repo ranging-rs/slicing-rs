@@ -17,11 +17,8 @@ pub mod bool_slice {
     pub fn construct_from_existing_data() {
         let mut array = [true, false];
 
-        assert_equal_items(&(BoolSlice::<2>::from_shared_slice(&array)), &[true, false]);
-        assert_equal_items(
-            &(BoolSlice::<2>::from_mutable_slice(&mut array)),
-            &[true, false],
-        );
+        assert_equal_items(&(BoolSlice::<2>::from_shared(&array)), &[true, false]);
+        assert_equal_items(&(BoolSlice::<2>::from_mutable(&mut array)), &[true, false]);
         assert_equal_items(&BoolSlice::<2>::from_array(array), &[true, false]);
     }
 
