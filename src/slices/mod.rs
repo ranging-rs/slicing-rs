@@ -1,3 +1,23 @@
+// @TODO consider name SliceStorageChoice
+pub enum SliceStorageType {
+    Shared,
+    Mutable,
+    Array,
+    BoxArray,
+    Vec,
+    VecRef,
+}
+
+impl SliceStorageType {
+    pub fn is_owned(&self) -> bool {
+        use SliceStorageType::*;
+        match self {
+            Shared | Mutable | VecRef => false,
+            Array | BoxArray | Vec => true,
+        }
+    }
+}
+
 /// Slice/array/vector-based container, with extra abstractions. You can use it
 /// on its own.
 /// The extra abstractions make it compatible with (limited) hash
@@ -87,27 +107,72 @@ where
     fn set(&mut self, index: usize, value: &T);
     fn iter<'s>(&'s self) -> Self::ITER<'s>;
 
-    // Ownership transfer constructors.
-    fn from_shared_slice(slice: &'a [T]) -> Self;
-    fn from_mutable_slice(slice: &'a mut [T]) -> Self;
+    // Constructor that doesn't transfer an array, but it transfers its slice.
+    fn from_shared(slice: &'a [T]) -> Self;
+    // Constructor that doesn't transfer an array, but it transfers its slice.
+    fn from_mutable(slice: &'a mut [T]) -> Self;
+    /// Array ownership transfer constructor.
     fn from_array(array: [T; N]) -> Self;
 
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn from_vec(vector: Vec<T>) -> Self;
 
-    /// Non-transfer constructor referring to a given `vector`.
+    /// Non-transfer constructor referring to a given `vector`. It transfers
+    /// ownership of the (mutable) reference itself.
     /// The only benefit of this function, as compared to `from_mutable_slice`,
     /// is that we can call `mutable_vec` on this instance.
     /// This function doesn't need a shared/immutable alternative - for that
-    /// use simple `from_shared_slice`.
+    /// use simple `from_shared`.
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
-    fn for_vec(vector: &'a mut Vec<T>) -> Self;
+    fn from_vec_ref(vector: &'a mut Vec<T>) -> Self;
 
+    // @TODO to a separate trait:
+    fn from_default(storage_type: SliceStorageType) -> Self
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
+
+    // Populating constructors - creating an instance that owns the data.
+    // @TODO size as an Option<usize> - depending on whether for Vec/VecRef?
+    // @TODO And/Or:
+    // from_value(storage_type) for Array|ArrayBox, and
+    // from_value_to_vec(size), OR
+    //       \\\ <-- Good for auto-complete. But vec is more common than array.
+    // from_value_to_array(storage_type, value) for Array|ArrayBox, or
+    // from_value_to_array and
+    // from_value_to_box_array AND
+    // from_value(value, size), or
+    // --> @TODO add to README.md.
+    fn from_value(storage_type: SliceStorageType, size: usize) -> Self
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
+    // @TODO SliceStorageType
+    fn from_iter() -> Self
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
+    // from_iter_to_vec(storage_type, size)
+    fn from_call() -> Self
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
+
+    // @TODO move/join with the above:
     // Constructors setting blank/default vaLues.
     /// Implemented only if T: Copy + Default.
     fn new_with_array() -> Self;
 
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    // @TODO move/join with the above:
     /// Implemented only if T: Default.
     fn new_with_vec(size: usize) -> Self;
 
@@ -148,6 +213,7 @@ pub enum SliceStorage<'a, T: 'a, const N: usize> {
     /// Owned array. Suggested for stack & `no_std`.
     Array([T; N]),
 
+    // @TODO no_std alloc-based Box<[T; N]> ???
     /// Owned vector. For `std` only.
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     Vec(Vec<T>),
@@ -182,12 +248,12 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
     }
 
     // Ownership transfer constructors.
-    fn from_shared_slice(slice: &'a [T]) -> Self {
+    fn from_shared(slice: &'a [T]) -> Self {
         #[cfg(feature = "size_for_array_only")]
         assert!(N.is_none());
         Self::Shared(slice)
     }
-    fn from_mutable_slice(slice: &'a mut [T]) -> Self {
+    fn from_mutable(slice: &'a mut [T]) -> Self {
         #[cfg(feature = "size_for_array_only")]
         assert!(N.is_none());
         Self::Mutable(slice)
@@ -206,7 +272,7 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
     }
 
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
-    fn for_vec(vector: &'a mut Vec<T>) -> Self {
+    fn from_vec_ref(vector: &'a mut Vec<T>) -> Self {
         Self::VecRef(vector)
     }
 

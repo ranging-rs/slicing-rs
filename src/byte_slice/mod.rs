@@ -66,10 +66,10 @@ impl<'a, const N: usize> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
 
     // Ownership transfer constructors. Supposed to be in-place/copy = fast, but that's not possible from bool-based input - hence never to be implemented.
     // @TODO Consider: NO ownership transfer, but pass a reference, and transform into a (packed) byte slice.
-    fn from_shared_slice(_slice: &'a [bool]) -> Self {
+    fn from_shared(_slice: &'a [bool]) -> Self {
         unimplemented!("Never")
     }
-    fn from_mutable_slice(_slice: &'a mut [bool]) -> Self {
+    fn from_mutable(_slice: &'a mut [bool]) -> Self {
         unimplemented!("Never")
     }
     fn from_array(_array: [bool; N]) -> Self {
@@ -82,7 +82,7 @@ impl<'a, const N: usize> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
     }
 
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
-    fn for_vec(vector: &'a mut Vec<bool>) -> Self {
+    fn from_vec_ref(vector: &'a mut Vec<bool>) -> Self {
         unimplemented!("Never")
     }
 
@@ -107,7 +107,7 @@ impl<'a, const N: usize> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn to_non_array_vec_based(&self) -> Self::NARR {
         ByteSliceBoolStorage {
-            byte_slice: ByteSlice::<0>::Vec(vec![]), //@TODO
+            byte_slice: self.byte_slice.to_non_array_vec_based(),
         }
     }
 
@@ -124,7 +124,7 @@ impl<'a, const N: usize> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
     }
 }
 
-/// Backed by a packed slice of bits (rounded up to bytes). That results not only in 8x less storage,  but in less cache & RAM bandidth => faster.
+/// Backed by a packed slice of bits (rounded up to bytes). That results not only in 8x less storage,  but in less cache & RAM bandwidth => faster.
 
 pub type Set<'s, T, I, const N: usize> = BoolFlagSet<'s, T, I, ByteSliceBoolStorage<'s, N>, N>;
 
