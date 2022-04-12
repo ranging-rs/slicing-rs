@@ -86,7 +86,10 @@ impl SliceStorageType {
 /// mutually exclusive. If none of them is set, then with `N = 0` you can use
 /// both empty arrays (array-based variant) and, of course, any non-array
 /// variants (as applicable according to your `std or `non_std`).
-pub trait Slice<'a, T: 'a + Clone + PartialEq, const N: usize>
+///
+/// If `T` is `Copy`, use `Slice` instead. See also `SliceStorageClone` and
+/// `SliceStorage` for reasoning on why they are named so.
+pub trait SliceClone<'a, T: 'a + Clone + PartialEq, const N: usize>
 where
     Self: 'a,
 {
@@ -98,7 +101,7 @@ where
     /// There's no way, and no need, to correlate `NARR` and `Self` here any
     /// closer (even though those types are related). It's the semantics/
     /// convention that matters.
-    type NARR: Slice<'a, T, 0>;
+    type NARR: SliceClone<'a, T, 0>;
 
     fn get(&self, index: usize) -> T;
     /// Set the value. Return true if this value was not present. (Based on std::collections::HashSet.)
@@ -204,8 +207,30 @@ where
     fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<T>;
 }
 
-/// Const generic param `N` is used by `Slice::Array` only. (However, it makes all variants consume space. Hence:) Suggested for `no_std` only.
-/// If you run in `std`, suggest passing 0 for `N`, and use `Slice::Vec` instead.
+// A Copy-only version of `SliceClone`.
+pub trait Slice<'a, T: 'a + Copy + PartialEq, const N: usize>
+where
+    Self: 'a,
+{
+}
+
+/// Const generic param `N` is used by `SliceStorage::Array` only. However, it makes all variants consume space. Hence Suggested primarily for no-heap or frequent instantiation on stack and for small sizes (`N`).
+/// If you run with heap and you have infrequent instantiation or large sizes (`N`), suggest passing 0 for `N`, and use `SliceStorage::Vec` or `SliceStorage::BoxArray` instead.
+///
+/// Why don't we call this to `SliceStorageCopy` instead of `SliceStorage` and why don't we
+/// rename the existing `SliceStorageClone`
+/// to `SliceStorage`? It could lead to laziness/
+/// not noticing/forgetting to use `SliceStorageCopy` whenever possible.
+/// Especially so because then any `Copy` type could be stored in either
+/// `SliceStorage` or `SliceStorageCopy`. Storing `Copy` in Clone-friendly
+/// storage would work, but it would be less efficient than storing it in a
+/// specialized `Copy` storage. Even more so with default values (which, if
+/// primitive and if stored in specialized `Copy` storage, could be
+/// optimized away - so the
+/// virtual memory wouldn't be used until written to it later).
+/// However, if we have `SliceStorage` work for `Copy` only, then it's unlikely
+/// that anyone would use it for `Clone` types (even though they could). And we
+/// have `SSliceStorageClone` for `Clone` types.
 #[derive(Debug)]
 pub enum SliceStorage<'a, T: 'a, const N: usize> {
     Shared(&'a [T]),
@@ -223,7 +248,7 @@ pub enum SliceStorage<'a, T: 'a, const N: usize> {
 }
 
 // TODO If we ever need this for non-Copy, then split this, and for non-Copy make `new_with_array()` and `to_array_based` panic!().
-impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> Slice<'a, T, N>
+impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> SliceClone<'a, T, N>
     for SliceStorage<'a, T, N>
 {
     type ITER<'i> = core::slice::Iter<'i, T>

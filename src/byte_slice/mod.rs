@@ -1,5 +1,5 @@
 use crate::bool_flag::BoolFlagSet;
-use crate::slices::{ByteSlice, Slice};
+use crate::slices::{ByteSlice, SliceClone};
 
 pub struct ByteSliceBoolStorage<'a, const N: usize>
 where
@@ -41,7 +41,7 @@ impl<'a, const N: usize> ByteSliceBoolStorage<'a, N> {
     }
 }
 
-impl<'a, const N: usize> Slice<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
+impl<'a, const N: usize> SliceClone<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
     type ITER<'s> = ByteSliceBoolIter<'s>
     where Self: 's;
 
