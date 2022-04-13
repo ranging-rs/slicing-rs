@@ -1,10 +1,15 @@
 [package]
-name = "no_std_emulate"
+name = "no_std_vec_compile"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ranging = { path = "../..", features = ["no_std"]}
-any_std = { path = "../any_std" }
+ranging = { path = "../..", features = ["no_std", "no_std_vec"]}
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

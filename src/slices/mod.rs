@@ -1,14 +1,24 @@
+#[cfg(any(feature = "no_std_box", feature = "no_std_vec"))]
+extern crate alloc;
+#[cfg(feature = "no_std_box")]
+use alloc::boxed::Box;
+#[cfg(feature = "no_std_vec")]
+use alloc::vec::Vec;
+
+//@TODO in `Set` module/structs: `no_std` friendly:
+//use alloc::collections::BTreeMap;
+
 /// Slice/array/vector-based container, with extra abstractions. You can use it
 /// on its own.
-/// The extra abstractions make it compatible with (limited) hash
-/// set/hash map. Slice or hash set/hash then serve as pluggable in
+/// The extra abstractions also make it compatible with (limited and adapted)
+/// hash set/hash map. Slice or hash set/hash then serve as pluggable in
 /// (range-based) `ranging::byte_slice::ByteSliceBoolStorage` and in
 /// implementations of `ranging::set::Set` and `ranging::map::Map`.
 ///
 /// If array-based, the size is fixed at compile time through a const generic param `N`.
 /// If slice-based or vec-based, its size can be any, as given at runtime. But for shared/mutable slice-based instances the size is fixed at instantiation.
 /// Vec-based instances can be resized.
-///
+///     
 /// Param `N` indicates array size for SliceStorage::Array. It works together
 /// with crate feature `size_for_array_only`.
 ///

@@ -13,8 +13,6 @@ no_std = []
 no_std_box = []
 # Whether to allow `Vec` in `no_std`. Requires `no_std`.
 no_std_vec = []
-# Whether to allow `HashMap` in `no_std`. Requires `no_std`.
-no_std_hashmap = []
 
 # Whether array size `N` can be non-zero if, and only if, the client code is
 # using `SliceStorage::Array` or `SliceStorage::BoxArray` invariants of that type (the type is `SliceStorage` with that

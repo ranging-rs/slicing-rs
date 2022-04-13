@@ -21,11 +21,7 @@ compile_error!("std and no_std are mutually exclusive! Use maximum one of those 
 
 #[cfg(all(
     not(feature = "no_std"),
-    any(
-        feature = "no_std_box",
-        feature = "no_std_vec",
-        feature = "no_std_hashmap"
-    )
+    any(feature = "no_std_box", feature = "no_std_vec")
 ))]
 compile_error!("Use no_std_box/no_std_vec/no_std_hashmap only together with no_std.");
 

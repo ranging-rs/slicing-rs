@@ -6,11 +6,6 @@ cargo rustc -- -C link-arg=-nostartfiles
 #![no_main]
 #![feature(default_alloc_error_handler)]
 
-extern crate alloc;
-//use alloc::boxed::Box;
-//use alloc::vec::Vec;
-
-#[allow(unused_imports)] //@TODO <- remove later
 use ranging; // No need to include all submodules - cargo will load them all anyway.
 
 use core::alloc::{GlobalAlloc, Layout};
