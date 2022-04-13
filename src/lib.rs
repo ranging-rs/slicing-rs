@@ -19,6 +19,16 @@ pub mod slices;
 #[cfg(all(feature = "no_std", feature = "std"))]
 compile_error!("std and no_std are mutually exclusive! Use maximum one of those two.");
 
+#[cfg(all(
+    not(feature = "no_std"),
+    any(
+        feature = "no_std_box",
+        feature = "no_std_vec",
+        feature = "no_std_hashmap"
+    )
+))]
+compile_error!("Use no_std_box/no_std_vec/no_std_hashmap only together with no_std.");
+
 #[cfg(all(feature = "allow_empty_arrays", feature = "disable_empty_arrays"))]
 compile_error!("allow_empty_arrays and disable_empty_arrays are mutually exclusive! Use maximum one of those two.");
 

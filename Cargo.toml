@@ -9,13 +9,24 @@ edition = "2021"
 # std and no_std are mutually exclusive. Use maximum one of them.
 std = []
 no_std = []
+# Whether to allow `Box` in `no_std`. Requires `no_std`.
+no_std_box = []
+# Whether to allow `Vec` in `no_std`. Requires `no_std`.
+no_std_vec = []
+# Whether to allow `HashMap` in `no_std`. Requires `no_std`.
+no_std_hashmap = []
 
 # Whether array size `N` can be non-zero if, and only if, the client code is
-# using `SliceStorage::Array` variant of that type (of `SliceStorage` with that
-# non-zero value of generic param `N`).
+# using `SliceStorage::Array` or `SliceStorage::BoxArray` invariants of that type (the type is `SliceStorage` with that
+# non-zero value of generic param `N`). If `size_for_array_only` is disabled,
+# you can use any invariant of `SliceStorage` (and similar types) with `N`>0,
+# but beware that non-array invariants waste space if `N`>0.
 size_for_array_only = []
 
-# DO NOT enable the following "only for testing", because it gets forgotten... Use tests/ok_std/ instead.
+allow_empty_arrays = []
+disable_empty_arrays = []
+
+# DO NOT enable the following (or any other new "default" here) "only for testing", because it gets forgotten... Use tests/ok_std/ instead.
 ## default = ["std"]
 
 [dependencies]

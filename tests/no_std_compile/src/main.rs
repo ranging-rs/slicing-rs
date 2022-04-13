@@ -1,5 +1,4 @@
-// Thanks to https://blog.dbrgn.ch/2019/12/24/testing-for-no-std-compatibility
-// \--> ensure_no_std
+// @TODO RustDoc from ../README.md.
 /* Build by:
 cargo rustc -- -C link-arg=-nostartfiles
 */
@@ -8,9 +7,8 @@ cargo rustc -- -C link-arg=-nostartfiles
 #![feature(default_alloc_error_handler)]
 
 extern crate alloc;
-//extern crate collections;
-//use core::collections; // @TODO <- figure out
-use alloc::boxed::Box;
+//use alloc::boxed::Box;
+//use alloc::vec::Vec;
 
 #[allow(unused_imports)] //@TODO <- remove later
 use ranging; // No need to include all submodules - cargo will load them all anyway.

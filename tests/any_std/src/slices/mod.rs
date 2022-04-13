@@ -1,7 +1,7 @@
-/// Helpers for (unpacked) bool slice. Used both by tests in this project, and by tests in `no_std/` project.
+/// Helpers for (unpacked) bool slice. Used both by tests in this project, and by tests in `ok_std/` and `no_std_*/` projects.
 pub mod bool_slice {
     use ranging::slices::BoolSlice;
-    use ranging::slices::Slice;
+    use ranging::slices::SliceClone;
     use ranging::slices::SliceStorage;
 
     /// Assert that `bool_based_slice` has same size and items as `slice`.
@@ -10,6 +10,7 @@ pub mod bool_slice {
         slice: &[bool],
     ) {
         let inner_slice = bool_based_slice.shared_slice();
+
         assert_eq!(inner_slice.len(), slice.len());
         assert_eq!(inner_slice, inner_slice);
     }

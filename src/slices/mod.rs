@@ -1,23 +1,3 @@
-// @TODO consider name SliceStorageChoice
-pub enum SliceStorageType {
-    Shared,
-    Mutable,
-    Array,
-    BoxArray,
-    Vec,
-    VecRef,
-}
-
-impl SliceStorageType {
-    pub fn is_owned(&self) -> bool {
-        use SliceStorageType::*;
-        match self {
-            Shared | Mutable | VecRef => false,
-            Array | BoxArray | Vec => true,
-        }
-    }
-}
-
 /// Slice/array/vector-based container, with extra abstractions. You can use it
 /// on its own.
 /// The extra abstractions make it compatible with (limited) hash
@@ -72,7 +52,7 @@ impl SliceStorageType {
 /// - use given non-zero `N` only for array-based purposes (often on stack, or in `non_std`). Otherwise use `SliceStorage<T, 0>` for pathways based on a slice/vector.
 /// - use `as_non_array_***` methods whenever possible.
 ///
-/// `Slice` (and it implementations) don't have `const N: usize`. That
+/// `Slice` (and it implementations) have `const N: usize` and not `const N: Option<usize>`. The later
 ///  would allow  granular (per generic type instance) intent as to whether the
 ///  specific type (for its chosen `N`) allows arrays of the given size
 ///  (whether zero or not), or whether it disables its array-based variant.
@@ -129,8 +109,8 @@ where
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn from_vec_ref(vector: &'a mut Vec<T>) -> Self;
 
-    // @TODO to a separate trait:
-    fn from_default(storage_type: SliceStorageType) -> Self
+    // @TODO to a separate trait - for Default only:
+    fn from_default(size: usize, storage_type: SliceBackedChoice) -> Self
     where
         Self: Sized,
     {
@@ -139,7 +119,7 @@ where
 
     // Populating constructors - creating an instance that owns the data.
     // @TODO And/Or:
-    // from_value(storage_type) for Array|ArrayBox, and
+    // from_value(storage_type) for Array|BoxArray, and
     // from_value_to_vec(size), OR
     //       \\\ <-- Good for auto-complete. (Unlike vec_from_value(...))
     //       But vec is more common than array. Hence:
@@ -148,7 +128,7 @@ where
     // AND
     // from_value(value, size)  -> owned vec
     // --> @TODO add to README.md.
-    fn from_value(storage_type: SliceStorageType, size: usize) -> Self
+    fn from_value(value: &'a T, size: usize, storage_type: SliceBackedChoice) -> Self
     where
         Self: Sized,
     {
@@ -200,7 +180,7 @@ where
     fn to_non_array_vec_based(&self) -> Self::NARR;
 
     // Accessors
-    fn shared_slice<'s>(&'s self) -> &'s [T];
+    fn shared_slice(&self) -> &[T];
     /// Implemented for all except for Shared-based slice.
     fn mutable_slice<'s>(&'s mut self) -> &'s mut [T];
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
@@ -214,8 +194,41 @@ where
 {
 }
 
-/// Const generic param `N` is used by `SliceStorage::Array` only. However, it makes all variants consume space. Hence Suggested primarily for no-heap or frequent instantiation on stack and for small sizes (`N`).
-/// If you run with heap and you have infrequent instantiation or large sizes (`N`), suggest passing 0 for `N`, and use `SliceStorage::Vec` or `SliceStorage::BoxArray` instead.
+pub enum SliceBackedChoice {
+    Shared,
+    Mutable,
+    Array,
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+    BoxArray,
+    // @TODO with vectors only
+    Vec,
+    VecRef,
+}
+
+impl SliceBackedChoice {
+    pub fn is_owned(&self) -> bool {
+        use SliceBackedChoice::*;
+        match self {
+            Shared | Mutable | VecRef => false,
+            // @TODO with vectors only
+            Array => true,
+            #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+            BoxArray => true,
+            Vec => true,
+        }
+    }
+}
+
+/// Like `SliceClone`, but backed by a native slice or similar.
+pub trait SliceBackedClone<'a, T: 'a + Clone + PartialEq, const N: usize>:
+    SliceClone<'a, T, N>
+where
+    Self: 'a,
+{
+}
+
+/// Const generic param `N` is used by `SliceStorage::Array` and `SliceStorage::BoxArray` invariants only. However, it makes all variants consume space. Hence `N > 0` is suggested primarily for no-heap or frequent instantiation on stack and for small sizes (`N`).
+/// If you run with heap, and you have infrequent instantiation or large sizes (`N`), suggest passing 0 for `N`, and use `SliceStorage::Vec` or `SliceStorage::BoxArray` instead.
 ///
 /// Why don't we call this to `SliceStorageCopy` instead of `SliceStorage` and why don't we
 /// rename the existing `SliceStorageClone`
@@ -235,11 +248,14 @@ where
 pub enum SliceStorage<'a, T: 'a, const N: usize> {
     Shared(&'a [T]),
     Mutable(&'a mut [T]),
+
     /// Owned array. Suggested for stack & `no_std`.
     Array([T; N]),
+    /// Owned boxed array.
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+    BoxArray(Box<[T; N]>),
 
-    // @TODO no_std alloc-based Box<[T; N]> ???
-    /// Owned vector. For `std` only.
+    /// Owned vector.
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     Vec(Vec<T>),
 
@@ -247,7 +263,7 @@ pub enum SliceStorage<'a, T: 'a, const N: usize> {
     VecRef(&'a mut Vec<T>),
 }
 
-// TODO If we ever need this for non-Copy, then split this, and for non-Copy make `new_with_array()` and `to_array_based` panic!().
+// @TODO for Clone only
 impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> SliceClone<'a, T, N>
     for SliceStorage<'a, T, N>
 {
@@ -325,6 +341,8 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> SliceClone<'a, T, N
                 let to = *from;
                 SliceStorage::Array(to)
             }
+            #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+            SliceStorage::BoxArray(from) => SliceStorage::Array(**from),
             SliceStorage::Shared(slice) => {
                 let mut to = [T::default(); N];
                 to.copy_from_slice(*slice);
@@ -363,6 +381,8 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> SliceClone<'a, T, N
         } else {
             let slice = match self {
                 Self::Array(array) => array,
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+                Self::BoxArray(boxed_array) => &(**boxed_array),
                 Self::Shared(shared_slice) => *shared_slice,
                 #[cfg(all(not(feature = "no_std"), feature = "std"))]
                 Self::Vec(vec) => vec,
@@ -376,11 +396,13 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> SliceClone<'a, T, N
     }
 
     // Accessors
-    fn shared_slice<'s>(&'s self) -> &'s [T] {
+    fn shared_slice(&self) -> &[T] {
         match &self {
             SliceStorage::Shared(slice) => slice,
             SliceStorage::Mutable(slice) => slice,
             SliceStorage::Array(array) => array,
+            #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+            SliceStorage::BoxArray(boxed_array) => &(**boxed_array),
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
             SliceStorage::Vec(vec) => vec,
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
@@ -395,6 +417,8 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> SliceClone<'a, T, N
             }
             SliceStorage::Mutable(slice) => slice,
             SliceStorage::Array(array) => array,
+            #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+            SliceStorage::BoxArray(boxed_array) => &mut (**boxed_array),
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
             SliceStorage::Vec(vec) => vec,
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
@@ -424,6 +448,8 @@ impl<'s, T: 's + Clone, const N: usize> Clone for SliceStorage<'s, T, N> {
                 unimplemented!("Can't clone a mutable slice.")
             }
             SliceStorage::Array(array) => SliceStorage::Array(array.clone()),
+            #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+            SliceStorage::BoxArray(boxed_array) => SliceStorage::BoxArray(boxed_array.clone()),
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
             SliceStorage::Vec(vec) => SliceStorage::Vec(vec.clone()),
             // Can't clone a mutable reference. Clone the vector itself.
@@ -444,6 +470,8 @@ impl<'s, T: 's + Clone + Copy + Default, const N: usize> crate::abstra::NewLike
                 unimplemented!("Can't clone a slice.")
             }
             SliceStorage::Array(_) => SliceStorage::Array([T::default(); N]),
+            #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+            SliceStorage::BoxArray(_) => SliceStorage::BoxArray(Box::new([T::default(); N])),
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
             SliceStorage::Vec(vec) => SliceStorage::Vec(Vec::with_capacity(vec.len())),
             #[cfg(all(not(feature = "no_std"), feature = "std"))]
