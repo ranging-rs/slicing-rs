@@ -1,4 +1,3 @@
-// @TODO RustDoc from ../README.md.
 /* Build by:
 cargo rustc -- -C link-arg=-nostartfiles
 */

@@ -12,7 +12,12 @@ pub mod bool_slice {
         let inner_slice = bool_based_slice.shared_slice();
 
         assert_eq!(inner_slice.len(), slice.len());
-        assert_eq!(inner_slice, inner_slice);
+        // Can't use `assert_eq!(inner_slice, slice);` because that uses
+        // PartialEq for slices, which use `slice/cmp.rs`, which uses `memcmp`,
+        // which doesn't exist in `no_std`.
+        for i in 0..slice.len() {
+            assert_eq!(inner_slice[i], slice[i]);
+        }
     }
 
     pub fn construct_from_existing_data() {

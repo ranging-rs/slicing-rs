@@ -1,12 +1,9 @@
-// @TODO RustDoc from ../README.md.
 /* Build by:
 cargo rustc -- -C link-arg=-nostartfiles
 */
 #![no_std]
 #![no_main]
 #![feature(default_alloc_error_handler)]
-
-use ranging; // No need to include all submodules - cargo will load them all anyway.
 
 use core::alloc::{GlobalAlloc, Layout};
 use core::panic::PanicInfo;
@@ -33,5 +30,7 @@ fn panic(_info: &PanicInfo) -> ! {
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
+    any_std::slices::bool_slice::construct_from_existing_data();
+    any_std::slices::bool_slice::new_contains_initial_false();
     loop {}
 }

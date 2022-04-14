@@ -138,7 +138,13 @@ where
     // AND
     // from_value(value, size)  -> owned vec
     // --> @TODO add to README.md.
-    fn from_value(value: &'a T, size: usize, storage_type: SliceBackedChoice) -> Self
+    fn from_value(value: T, size: usize, storage_type: SliceBackedChoice) -> Self
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
+    fn from_value_ref(value: &'a T, size: usize, storage_type: SliceBackedChoice) -> Self
     where
         Self: Sized,
     {
@@ -332,13 +338,13 @@ impl<'a, T: 'a + Copy + PartialEq + Default, const N: usize> SliceClone<'a, T, N
     // Constructors setting blank/default vaLues.
     fn new_with_array() -> Self {
         #[cfg(feature = "size_for_array_only")]
-        assert!(N.is_none());
+        assert!(N > 0);
         Self::Array([T::default(); N])
     }
     #[cfg(all(not(feature = "no_std"), feature = "std"))]
     fn new_with_vec(size: usize) -> Self {
         #[cfg(feature = "size_for_array_only")]
-        assert!(N.is_none());
+        assert!(N > 0);
         Self::from_vec(Vec::with_capacity(size))
         // @TODO populate
     }

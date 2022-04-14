@@ -128,6 +128,7 @@ impl<'a, const N: usize> SliceClone<'a, bool, N> for ByteSliceBoolStorage<'a, N>
 
 pub type Set<'s, T, I, const N: usize> = BoolFlagSet<'s, T, I, ByteSliceBoolStorage<'s, N>, N>;
 
+#[derive(Debug)]
 pub struct ByteSliceBoolIter<'a> {
     /// Next index into current_byte. Always valid (<8) if `current_byte` is valid, too. It could be u8, but conversions would make the code cluttered.
     bit_subindex: usize,
