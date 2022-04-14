@@ -6,9 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-# std and no_std are mutually exclusive. Use maximum one of them.
+# `std` and `no_std` are mutually exclusive. Use maximum one of them.
+# `std` doesn't enable anything, really. It only indicates. And it ensures an
+# error if any other dependency requests `no_std`.
 std = []
 no_std = []
+
 # Whether to allow `Box` in `no_std`. Requires `no_std`.
 no_std_box = []
 # Whether to allow `Vec` in `no_std`. Requires `no_std`.

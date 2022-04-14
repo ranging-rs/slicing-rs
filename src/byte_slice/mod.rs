@@ -76,12 +76,12 @@ impl<'a, const N: usize> SliceClone<'a, bool, N> for ByteSliceBoolStorage<'a, N>
         unimplemented!("Never")
     }
 
-    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
     fn from_vec(_vector: Vec<bool>) -> Self {
         unimplemented!("Never")
     }
 
-    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
     fn from_vec_ref(vector: &'a mut Vec<bool>) -> Self {
         unimplemented!("Never")
     }
@@ -90,7 +90,7 @@ impl<'a, const N: usize> SliceClone<'a, bool, N> for ByteSliceBoolStorage<'a, N>
     fn new_with_array() -> Self {
         unimplemented!("Never") //@TODO Consider later.
     }
-    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
     fn new_with_vec(size: usize) -> Self {
         unimplemented!("Never") //@TODO Consider later.
     }
@@ -99,12 +99,12 @@ impl<'a, const N: usize> SliceClone<'a, bool, N> for ByteSliceBoolStorage<'a, N>
         unimplemented!("Never")
     }
 
-    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
     fn to_vec_based(&self) -> Self {
         unimplemented!("Never")
     }
 
-    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
     fn to_non_array_vec_based(&self) -> Self::NARR {
         ByteSliceBoolStorage {
             byte_slice: self.byte_slice.to_non_array_vec_based(),
@@ -118,7 +118,7 @@ impl<'a, const N: usize> SliceClone<'a, bool, N> for ByteSliceBoolStorage<'a, N>
     fn mutable_slice<'s>(&'s mut self) -> &'s mut [bool] {
         unimplemented!("Never")
     }
-    #[cfg(all(not(feature = "no_std"), feature = "std"))]
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
     fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<bool> {
         unimplemented!("Never")
     }
