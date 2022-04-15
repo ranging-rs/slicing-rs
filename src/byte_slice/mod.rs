@@ -1,11 +1,22 @@
 use crate::bool_flag::BoolFlagSet;
 use crate::slices::{ByteSlice, SliceBackedChoice, SliceDefault};
 
+/// Given `num_bits`, return number of bytes required to cover all those bits.
+pub const fn num_bits_to_bytes(num_bits: usize) -> usize {
+    let divided = num_bits / 8;
+    if num_bits == divided * 8 {
+        divided
+    } else {
+        divided + 1
+    }
+}
+
 pub struct ByteSliceBoolStorage<'a, const N: usize>
 where
     Self: 'a,
+    [(); num_bits_to_bytes(N)]:,
 {
-    byte_slice: ByteSlice<'a, N>, //@TODO math::ceil(N/8) as usize
+    byte_slice: ByteSlice<'a, { num_bits_to_bytes(N) }>,
 }
 
 /// "one shifted": Return 1u8, shifted by `index` places to left.
@@ -25,7 +36,10 @@ fn get_bit(byte: u8, bit_subindex: usize) -> bool {
     (byte & one_shifted) != 0
 }
 
-impl<'a, const N: usize> ByteSliceBoolStorage<'a, N> {
+impl<'a, const N: usize> ByteSliceBoolStorage<'a, N>
+where
+    [(); num_bits_to_bytes(N)]:,
+{
     /// Return (byte_index, old_byte, new_byte)
     fn dry_run_set(&self, index: usize, value: &bool) -> (usize, u8, u8) {
         let byte_index = index / 8;
@@ -41,7 +55,10 @@ impl<'a, const N: usize> ByteSliceBoolStorage<'a, N> {
     }
 }
 
-impl<'a, const N: usize> SliceDefault<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
+impl<'a, const N: usize> SliceDefault<'a, bool, N> for ByteSliceBoolStorage<'a, N>
+where
+    [(); num_bits_to_bytes(N)]:,
+{
     type ITER<'s> = ByteSliceBoolIter<'s>
     where Self: 's;
 
@@ -105,7 +122,7 @@ impl<'a, const N: usize> SliceDefault<'a, bool, N> for ByteSliceBoolStorage<'a, 
     #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
     fn from_default_to_vec(size: usize) -> Self {
         Self {
-            byte_slice: ByteSlice::from_default_to_vec(size),
+            byte_slice: ByteSlice::from_default_to_vec(num_bits_to_bytes(size)),
         }
     }
 
