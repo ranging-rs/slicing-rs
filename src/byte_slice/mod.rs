@@ -103,6 +103,18 @@ where
         unimplemented!("Never")
     }
 
+    fn from_value_to_array(value_ref: &bool) -> Self {
+        unimplemented!("Maybe one day")
+    }
+    fn from_value_to_box_array(value_ref: &bool) -> Self {
+        unimplemented!("Maybe one day")
+    }
+
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+    fn from_value_to_vec(value: &bool, size: usize) -> Self {
+        unimplemented!("Maybe one day")
+    }
+
     fn from_default(size: usize, storage_type: SliceBackedChoice) -> Self {
         Self {
             byte_slice: ByteSlice::from_default(size, storage_type),

@@ -44,30 +44,24 @@ macro_rules! slice_trait {
         fn from_vec_ref(vector: &'a mut Vec<T>) -> Self;
 
         // Populating constructors - creating an instance that owns the data.
-        fn from_value(value: &'a T, size: usize, storage_type: SliceBackedChoice) -> Self
+        fn from_value(value_ref: &'a T, size: usize, storage_type: SliceBackedChoice) -> Self
         where
             Self: Sized,
         {
-            todo!()
+            match storage_type {
+                SliceBackedChoice::Array => Self::from_value_to_array(value_ref),
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+                SliceBackedChoice::BoxArray => Self::from_value_to_box_array(value_ref),
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                SliceBackedChoice::Vec => Self::from_value_to_vec(value_ref, size),
+                _ => unimplemented!("Never"),
+            }
         }
-        fn from_value_to_array(value: &'a T) -> Self
-        where
-            Self: Sized,
-        {
-            todo!()
-        }
-        fn from_value_to_box_array(value: &'a T) -> Self
-        where
-            Self: Sized,
-        {
-            todo!()
-        }
-        fn from_value_to_vec(value: &'a T, size: usize) -> Self
-        where
-            Self: Sized,
-        {
-            todo!()
-        }
+        fn from_value_to_array(value: &'a T) -> Self;
+        #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+        fn from_value_to_box_array(value: &'a T) -> Self;
+        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+        fn from_value_to_vec(value: &'a T, size: usize) -> Self;
 
         // @TODO SliceStorageType
         fn from_iter() -> Self
@@ -118,7 +112,19 @@ macro_rules! slice_trait_default {
         // @TODO to a separate trait - for Default only:
         /// Param `size` is used only if `storage_type == SliceBackedChoice::Vec`.
         /// Param `storage_type` can be only for "owned" choices (Array/BoxArray/Vec).
-        fn from_default(size: usize, storage_type: SliceBackedChoice) -> Self;
+        fn from_default(size: usize, storage_type: SliceBackedChoice) -> Self
+        where
+            Self: Sized,
+        {
+            match storage_type {
+                SliceBackedChoice::Array => Self::from_default_to_array(),
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+                SliceBackedChoice::BoxArray => Self::from_default_to_box_array(),
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                SliceBackedChoice::Vec => Self::from_default_to_vec(size),
+                _ => unimplemented!("Never"),
+            }
+        }
         fn from_default_to_array() -> Self;
         #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
         fn from_default_to_box_array() -> Self;
@@ -313,8 +319,21 @@ slice_storage_enum!(SliceStorageClone, Clone);
 slice_storage_enum!(SliceStorageDefault, Clone + Copy + Default);
 slice_storage_enum!(SliceStorageDefaultClone, Clone + Default);
 
+fn copy_value<T: Clone + Copy>(from: &T) -> T {
+    *from
+}
+fn clone_value<T: Clone>(from: &T) -> T {
+    from.clone()
+}
+fn copy_to_array<T: Clone + Copy, const N: usize>(from: &T) -> [T; N] {
+    [*from; N]
+}
+fn clone_to_array<T: Clone, const N: usize>(from: &T) -> [T; N] {
+    core::array::from_fn(|_| from.clone())
+}
+
 macro_rules! slice_storage_impl {
-    ($enum_name:ident) => {
+    ($enum_name:ident, $copy_or_clone_value: ident, $copy_or_clone_to_array: ident) => {
         type ITER<'i> = core::slice::Iter<'i, T>
                                                                         where T: 'i, Self: 'i;
 
@@ -363,6 +382,23 @@ macro_rules! slice_storage_impl {
         #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
         fn from_vec_ref(vector: &'a mut Vec<T>) -> Self {
             Self::VecRef(vector)
+        }
+
+        fn from_value_to_array(value_ref: &'a T) -> Self {
+            Self::Array($copy_or_clone_to_array(value_ref))
+        }
+        #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+        fn from_value_to_box_array(value_ref: &'a T) -> Self {
+            Self::BoxArray(Box::new($copy_or_clone_to_array(value_ref)))
+        }
+
+        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+        fn from_value_to_vec(value: &'a T, size: usize) -> Self {
+            let mut vec = Vec::with_capacity(size);
+            for _ in 0..size {
+                vec.push($copy_or_clone_value(value));
+            }
+            Self::Vec(vec)
         }
 
         #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
@@ -439,16 +475,16 @@ macro_rules! slice_storage_impl {
 impl<'a, T: 'a + Clone + Copy + PartialEq, const N: usize> Slice<'a, T, N>
     for SliceStorage<'a, T, N>
 {
-    slice_storage_impl!(SliceStorage);
+    slice_storage_impl!(SliceStorage, copy_value, copy_to_array);
 }
 impl<'a, T: 'a + Clone + PartialEq, const N: usize> SliceClone<'a, T, N>
     for SliceStorageClone<'a, T, N>
 {
-    slice_storage_impl!(SliceStorageClone);
+    slice_storage_impl!(SliceStorageClone, clone_value, clone_to_array);
 }
 
 // Following functions are in pairs, used as alternative implementation parts
-// passed to slice_storage_default_impl macro.
+// passed to slice_storage_default_impl! macro.
 fn copy_array<T: Clone + Copy, const N: usize>(from: &[T; N]) -> [T; N] {
     *from
 }
@@ -459,6 +495,7 @@ fn copy_array_default<T: Clone + Copy + Default, const N: usize>() -> [T; N] {
     [T::default(); N]
 }
 // @TODO optimize - later
+// https://play.rust-lang.org/?version=nightly&mode=debug&edition=2018&gist=efa6fb4de4d30d4813a8790fefbb7bed#ARRAY
 fn clone_array_default<T: Clone + Default, const N: usize>() -> [T; N] {
     core::array::from_fn(|_| T::default())
 }
@@ -502,16 +539,6 @@ macro_rules! slice_storage_default_impl {
             }
         }
 
-        fn from_default(size: usize, storage_type: SliceBackedChoice) -> Self {
-            match storage_type {
-                SliceBackedChoice::Array => Self::from_default_to_array(),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
-                SliceBackedChoice::BoxArray => Self::from_default_to_box_array(),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-                SliceBackedChoice::Vec => Self::from_default_to_vec(size),
-                _ => unimplemented!("Never"),
-            }
-        }
         fn from_default_to_array() -> Self {
             Self::Array($copy_or_clone_default())
         }
@@ -533,13 +560,13 @@ macro_rules! slice_storage_default_impl {
 impl<'a, T: 'a + Clone + Copy + PartialEq + Default, const N: usize> SliceDefault<'a, T, N>
     for SliceStorageDefault<'a, T, N>
 {
-    slice_storage_impl!(SliceStorageDefault);
+    slice_storage_impl!(SliceStorageDefault, copy_value, copy_to_array);
     slice_storage_default_impl!(copy_from_slice, copy_array, copy_array_default);
 }
 impl<'a, T: 'a + Clone + PartialEq + Default, const N: usize> SliceDefaultClone<'a, T, N>
     for SliceStorageDefaultClone<'a, T, N>
 {
-    slice_storage_impl!(SliceStorageDefaultClone);
+    slice_storage_impl!(SliceStorageDefaultClone, clone_value, clone_to_array);
     slice_storage_default_impl!(clone_from_slice, clone_array, clone_array_default);
 }
 
