@@ -1,5 +1,5 @@
 use crate::bool_flag::BoolFlagSet;
-use crate::slices::{ByteSlice, SliceClone};
+use crate::slices::{ByteSlice, SliceDefault};
 
 pub struct ByteSliceBoolStorage<'a, const N: usize>
 where
@@ -41,7 +41,7 @@ impl<'a, const N: usize> ByteSliceBoolStorage<'a, N> {
     }
 }
 
-impl<'a, const N: usize> SliceClone<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
+impl<'a, const N: usize> SliceDefault<'a, bool, N> for ByteSliceBoolStorage<'a, N> {
     type ITER<'s> = ByteSliceBoolIter<'s>
     where Self: 's;
 
@@ -89,6 +89,12 @@ impl<'a, const N: usize> SliceClone<'a, bool, N> for ByteSliceBoolStorage<'a, N>
     // Constructors setting blank/default vaLues.
     fn new_with_array() -> Self {
         unimplemented!("Never") //@TODO Consider later.
+    }
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+    fn new_with_box_array() -> Self {
+        #[cfg(feature = "size_for_array_only")]
+        assert!(N > 0);
+        unimplemented!("Never")
     }
     #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
     fn new_with_vec(size: usize) -> Self {

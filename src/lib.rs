@@ -8,6 +8,7 @@
 #![feature(generic_const_exprs)]
 #![feature(const_option)]
 #![feature(const_option_ext)]
+#![feature(array_from_fn)]
 
 pub mod abstra;
 pub mod index;
