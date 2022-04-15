@@ -1,11 +1,11 @@
 use crate::bool_flag::BoolFlagSet;
-use crate::slices::{ByteSlice, SliceDefault};
+use crate::slices::{ByteSlice, SliceBackedChoice, SliceDefault};
 
 pub struct ByteSliceBoolStorage<'a, const N: usize>
 where
     Self: 'a,
 {
-    byte_slice: ByteSlice<'a, N>,
+    byte_slice: ByteSlice<'a, N>, //@TODO math::ceil(N/8) as usize
 }
 
 /// "one shifted": Return 1u8, shifted by `index` places to left.
@@ -86,19 +86,27 @@ impl<'a, const N: usize> SliceDefault<'a, bool, N> for ByteSliceBoolStorage<'a, 
         unimplemented!("Never")
     }
 
-    // Constructors setting blank/default vaLues.
-    fn new_with_array() -> Self {
-        unimplemented!("Never") //@TODO Consider later.
+    fn from_default(size: usize, storage_type: SliceBackedChoice) -> Self {
+        Self {
+            byte_slice: ByteSlice::from_default(size, storage_type),
+        }
+    }
+    fn from_default_to_array() -> Self {
+        Self {
+            byte_slice: ByteSlice::from_default_to_array(),
+        }
     }
     #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
-    fn new_with_box_array() -> Self {
-        #[cfg(feature = "size_for_array_only")]
-        assert!(N > 0);
-        unimplemented!("Never")
+    fn from_default_to_box_array() -> Self {
+        Self {
+            byte_slice: ByteSlice::from_default_to_box_array(),
+        }
     }
     #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-    fn new_with_vec(size: usize) -> Self {
-        unimplemented!("Never") //@TODO Consider later.
+    fn from_default_to_vec(size: usize) -> Self {
+        Self {
+            byte_slice: ByteSlice::from_default_to_vec(size),
+        }
     }
 
     fn to_array_based(&self) -> Self {
