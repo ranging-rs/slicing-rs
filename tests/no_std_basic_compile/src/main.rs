@@ -1,6 +1,3 @@
-/* Build by:
-cargo rustc -- -C link-arg=-nostartfiles
-*/
 #![no_std]
 #![no_main]
 #![feature(default_alloc_error_handler)]

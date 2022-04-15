@@ -1,17 +1,18 @@
 /// Helpers for (unpacked) bool slice. Used both by tests in this project, and by tests in `ok_std/` and `no_std_*/` projects.
 pub mod bool_slice {
     use ranging::slices::BoolSlice;
-    use ranging::slices::SliceClone;
-    use ranging::slices::SliceStorage;
+    use ranging::slices::SliceDefault;
+    use ranging::slices::SliceStorageDefault;
 
     /// Assert that `bool_based_slice` has same size and items as `slice`.
     pub fn assert_equal_items<const N: usize>(
-        bool_based_slice: &SliceStorage<bool, N>,
+        bool_based_slice: &SliceStorageDefault<bool, N>,
         slice: &[bool],
     ) {
         let inner_slice = bool_based_slice.shared_slice();
 
         assert_eq!(inner_slice.len(), slice.len());
+        assert_eq!(inner_slice, slice);
         // Can't use `assert_eq!(inner_slice, slice);` because that uses
         // PartialEq for slices, which use `slice/cmp.rs`, which uses `memcmp`,
         // which doesn't exist in `no_std`.
@@ -29,7 +30,7 @@ pub mod bool_slice {
     }
 
     pub fn new_contains_initial_false() {
-        assert_equal_items(&BoolSlice::<1>::new_with_array(), &[false]);
+        assert_equal_items(&BoolSlice::<1>::from_default_to_array(), &[false]);
     }
 }
 

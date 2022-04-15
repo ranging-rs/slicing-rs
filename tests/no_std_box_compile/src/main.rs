@@ -1,12 +1,6 @@
-// @TODO RustDoc from ../README.md.
-/* Build by:
-cargo rustc -- -C link-arg=-nostartfiles
-*/
 #![no_std]
 #![no_main]
 #![feature(default_alloc_error_handler)]
-
-use ranging; // No need to include all submodules - cargo will load them all anyway.
 
 use core::alloc::{GlobalAlloc, Layout};
 use core::panic::PanicInfo;

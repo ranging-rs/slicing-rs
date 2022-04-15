@@ -1,19 +1,5 @@
-# Test `no_std` cargoc (compilation) compatibility (but no `cargo build`, neither no running tests themselves).
+# Test `no_std` compatibility with `cargo build`.
 
 After looking at https://crates.io/crates/trybuild, https://crates.io/crates/compiletest_rs and https://crates.io/crates/cargo-nono, this is the fastest & simplest way.
 
-Run
-```
-cargo rustc -- -C link-arg=-nostartfiles
-```
-
-For GitHub Actions use
-```
-name: Ensure that crate is no_std
-  uses: actions-rs/cargo@v1
-  with:
-    command: rustc
-    args: --manifest-path=no_std_basic_compile/Cargo.toml -- -C link-arg=-nostartfiles
-```
-
-The above comes from https://blog.dbrgn.ch/2019/12/24/testing-for-no-std-compatibility --> `ensure_no_std`.
+Beware that https://blog.dbrgn.ch/2019/12/24/testing-for-no-std-compatibility uses no `libc`, and not just no `std`. That ends up with errors about missing `memcpy` and `setmem`.

@@ -1,12 +1,8 @@
-/* Build by:
-cargo rustc -- -C link-arg=-nostartfiles
-*/
 #![no_std]
 #![no_main]
 #![feature(default_alloc_error_handler)]
 
 // @TODO "use" & code with `Vec`-based types
-use ranging;
 
 use core::alloc::{GlobalAlloc, Layout};
 use core::panic::PanicInfo;

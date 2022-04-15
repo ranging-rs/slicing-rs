@@ -505,7 +505,9 @@ macro_rules! slice_storage_default_impl {
         fn from_default(size: usize, storage_type: SliceBackedChoice) -> Self {
             match storage_type {
                 SliceBackedChoice::Array => Self::from_default_to_array(),
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
                 SliceBackedChoice::BoxArray => Self::from_default_to_box_array(),
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
                 SliceBackedChoice::Vec => Self::from_default_to_vec(size),
                 _ => unimplemented!("Never"),
             }
