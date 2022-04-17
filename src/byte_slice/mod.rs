@@ -115,6 +115,30 @@ where
         unimplemented!("Maybe one day")
     }
 
+    fn from_iter_to_array(iter: impl Iterator<Item = bool>) -> Self {
+        unimplemented!("Maybe one day")
+    }
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+    fn from_iter_to_box_array(iter: impl Iterator<Item = bool>) -> Self {
+        unimplemented!("Maybe one day")
+    }
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+    fn from_iter_to_vec(iter: impl Iterator<Item = bool>) -> Self {
+        unimplemented!("Maybe one day")
+    }
+
+    fn from_fn_to_array(f: impl FnMut() -> bool) -> Self {
+        unimplemented!("Maybe one day")
+    }
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
+    fn from_fn_to_box_array(f: impl FnMut() -> bool) -> Self {
+        unimplemented!("Maybe one day")
+    }
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+    fn from_fn_to_vec(f: impl FnMut() -> bool, size: usize) -> Self {
+        unimplemented!("Maybe one day")
+    }
+
     fn from_default(size: usize, storage_type: SliceBackedChoice) -> Self {
         Self {
             byte_slice: ByteSlice::from_default(size, storage_type),
@@ -143,7 +167,7 @@ where
     }
 
     #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-    fn to_vec_based(&self) -> Self {
+    fn to_vec_based(self) -> Self {
         unimplemented!("Never")
     }
 
