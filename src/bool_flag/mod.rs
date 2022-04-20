@@ -57,6 +57,19 @@ where
     }
 }
 
+impl<'s, T: 's + Clone + PartialEq, I: Indexer<T>, SL: Slice<'s, bool, N>, const N: usize>
+    BoolFlagSet<'s, T, I, SL, N>
+{
+    pub fn new(slice: SL, indexer: I) -> Self {
+        Self {
+            slice,
+            indexer,
+            _items: PhantomData,
+            _s_lifetimed: PhantomData,
+        }
+    }
+}
+
 impl<
         's,
         T: 's + Eq + Clone + Copy + Default,

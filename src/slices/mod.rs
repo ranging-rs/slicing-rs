@@ -775,18 +775,18 @@ impl<'s, T: 's + Clone + Copy + Default, const N: usize> crate::abstra::NewLike
     /// Implemented for Shared-backed, Array-backed and Vec-backed SliceStorage only.
     fn new_like(&self) -> Self {
         match self {
-            SliceStorage::Shared(slice) => SliceStorage::Shared(slice),
-            SliceStorage::Mutable(_) => {
-                unimplemented!("Can't clone a slice.")
+            Self::Shared(slice) => Self::Shared(slice),
+            Self::Mutable(_) => {
+                unimplemented!("Can't clone a mutable slice.")
             }
-            SliceStorage::Array(_) => SliceStorage::Array([T::default(); N]),
+            Self::Array(_) => Self::Array([T::default(); N]),
             #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
-            SliceStorage::BoxArray(_) => SliceStorage::BoxArray(Box::new([T::default(); N])),
+            Self::BoxArray(_) => Self::BoxArray(Box::new([T::default(); N])),
             #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-            SliceStorage::Vec(vec) => SliceStorage::Vec(Vec::with_capacity(vec.len())),
+            Self::Vec(vec) => Self::Vec(Vec::with_capacity(vec.len())),
             #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-            SliceStorage::VecRef(vec_ref) => {
-                unimplemented!("Can't clone a mutable reference.")
+            Self::VecRef(_) => {
+                unimplemented!("Can't clone a mutable Vec reference.")
             }
         }
     }

@@ -1,17 +1,19 @@
 use core::hash::Hash;
 use std::collections::{hash_set, HashSet};
 
+#[cfg(not(feature = "no_std"))]
 #[derive(Debug)]
 pub struct HashedSet<T> {
     set: HashSet<T>,
 }
 
+#[cfg(not(feature = "no_std"))]
 impl<T: Hash + Eq + Clone> crate::set::Set<T> for HashedSet<T> {
-    type ITER<'a>
+    type ITER<'a> = HashedSetIter<'a, T>
     where
         T: 'a,
         Self: 'a,
-    = HashedSetIter<'a, T>;
+    ;
     fn contains(&self, value: &T) -> bool {
         self.set.contains(value)
     }
@@ -27,6 +29,7 @@ impl<T: Hash + Eq + Clone> crate::set::Set<T> for HashedSet<T> {
         }
     }
 }
+#[cfg(not(feature = "no_std"))]
 impl<T: Hash + Eq + Clone> crate::abstra::NewLike for HashedSet<T> {
     fn new_like(&self) -> Self {
         Self {
@@ -35,6 +38,7 @@ impl<T: Hash + Eq + Clone> crate::abstra::NewLike for HashedSet<T> {
     }
 }
 
+#[cfg(not(feature = "no_std"))]
 impl<T: Hash + Eq + Clone> Clone for HashedSet<T> {
     fn clone(&self) -> Self {
         Self {
@@ -43,6 +47,7 @@ impl<T: Hash + Eq + Clone> Clone for HashedSet<T> {
     }
 }
 
+#[cfg(not(feature = "no_std"))]
 impl<T: Hash + Eq> HashedSet<T> {
     pub fn new() -> Self {
         Self {
@@ -51,17 +56,21 @@ impl<T: Hash + Eq> HashedSet<T> {
     }
 }
 
+#[cfg(not(feature = "no_std"))]
 pub struct HashedSetIter<'a, T: 'a> {
     set_iter: hash_set::Iter<'a, T>,
 }
+#[cfg(not(feature = "no_std"))]
 impl<'a, T: Clone> Iterator for HashedSetIter<'a, T> {
     type Item = T;
     #[inline]
     fn next(&mut self) -> Option<T> {
-        self.set_iter.next().map(|value| value.clone())
+        //self.set_iter.next().map(|value| value.clone())
+        self.set_iter.next().cloned()
     }
 }
 
+#[cfg(not(feature = "no_std"))]
 impl<T: core::hash::Hash + Eq> FromIterator<T> for HashedSet<T> {
     fn from_iter<IT>(iter: IT) -> Self
     where
