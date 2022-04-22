@@ -1,6 +1,6 @@
 use crate::abstra::NewLike;
 use crate::index::{Indexer, RangeIndexer};
-use crate::slices::Slice;
+use crate::slices::SliceDefault;
 use core::ops::Sub;
 use core::{fmt, marker::PhantomData};
 
@@ -11,7 +11,7 @@ pub struct BoolFlagSet<
     's,
     T: 's + Clone + PartialEq,
     I: Indexer<T>,
-    SL: Slice<'s, bool, N>,
+    SL: SliceDefault<'s, bool, N>,
     const N: usize,
 > {
     slice: SL,
@@ -25,7 +25,7 @@ impl<
         's,
         T: 's + Eq + Clone + Copy + Default,
         I: Indexer<T>,
-        SL: 's + Slice<'s, bool, N> + Clone + NewLike,
+        SL: 's + SliceDefault<'s, bool, N> + Clone + NewLike,
         const N: usize,
     > crate::set::Set<T> for BoolFlagSet<'s, T, I, SL, N>
 where
@@ -36,12 +36,10 @@ where
     fn contains(&self, value: &T) -> bool {
         self.slice.get(self.indexer.index(value))
     }
-    /// Return true if this value was not present yet. (Based on std::collections::HashSet.)
     fn insert(&mut self, value: T) -> bool {
         let index = self.indexer.index(&value);
         self.slice.check_and_set(index, &true)
     }
-    /// Return whether it was actually present. (Based on std::collections::HashSet.)
     fn remove(&mut self, value: &T) -> bool {
         let index = self.indexer.index(&value);
         self.slice.check_and_set(index, &false)
@@ -57,8 +55,13 @@ where
     }
 }
 
-impl<'s, T: 's + Clone + PartialEq, I: Indexer<T>, SL: Slice<'s, bool, N>, const N: usize>
-    BoolFlagSet<'s, T, I, SL, N>
+impl<
+        's,
+        T: 's + Clone + PartialEq,
+        I: Indexer<T>,
+        SL: SliceDefault<'s, bool, N>,
+        const N: usize,
+    > BoolFlagSet<'s, T, I, SL, N>
 {
     pub fn new(slice: SL, indexer: I) -> Self {
         Self {
@@ -74,7 +77,7 @@ impl<
         's,
         T: 's + Eq + Clone + Copy + Default,
         I: Indexer<T>,
-        SL: Slice<'s, bool, N> + NewLike,
+        SL: SliceDefault<'s, bool, N> + NewLike,
         const N: usize,
     > NewLike for BoolFlagSet<'s, T, I, SL, N>
 {
@@ -88,7 +91,7 @@ impl<
     }
 }
 
-impl<'s, T: Eq + Clone, I: Indexer<T>, SL: Slice<'s, bool, N> + Clone, const N: usize> Clone
+impl<'s, T: Eq + Clone, I: Indexer<T>, SL: SliceDefault<'s, bool, N> + Clone, const N: usize> Clone
     for BoolFlagSet<'s, T, I, SL, N>
 {
     fn clone(&self) -> Self {
@@ -127,7 +130,7 @@ impl<'a, T: Clone, IND: Indexer<T>, SLIT: Iterator<Item = &'a bool>> Iterator
     }
 }
 
-impl<'s, T: 's + Eq + Clone + Default + Sub<T>, SL: Slice<'s, bool, N>, const N: usize>
+impl<'s, T: 's + Eq + Clone + Default + Sub<T>, SL: SliceDefault<'s, bool, N>, const N: usize>
     BoolFlagSet<'s, T, RangeIndexer<T>, SL, N>
 where
     T: TryInto<usize>,

@@ -12,13 +12,11 @@ edition = "2021"
 std = []
 no_std = []
 
-# Whether to allow `Box` in `no_std`. Requires `no_std`.
-no_std_box = []
 # Whether to allow `Vec` in `no_std`. Requires `no_std`.
 no_std_vec = []
 
 # Whether array size `N` can be non-zero if, and only if, the client code is
-# using `SliceStorage::Array` or `SliceStorage::BoxArray` invariants of that type (the type is `SliceStorage` with that
+# using `SliceStorage::Array` invariant of that type (the type is `SliceStorage` with that
 # non-zero value of generic param `N`). If `size_for_array_only` is disabled,
 # you can use any invariant of `SliceStorage` (and similar types) with `N`>0,
 # but beware that non-array invariants waste space if `N`>0.

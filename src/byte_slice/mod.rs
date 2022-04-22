@@ -36,10 +36,17 @@ fn get_bit(byte: u8, bit_subindex: usize) -> bool {
     (byte & one_shifted) != 0
 }
 
+// @TODO impl SliceDefault?
 impl<'a, const N: usize> ByteSliceBoolStorage<'a, N>
 where
     [(); num_bits_to_bytes(N)]:,
 {
+    pub fn from_default_to_array() -> Self {
+        Self {
+            byte_slice: <ByteSlice<{ num_bits_to_bytes(N) }>>::from_default_to_array(),
+        }
+    }
+
     /// Return (byte_index, old_byte, new_byte)
     fn dry_run_set(&self, index: usize, value: &bool) -> (usize, u8, u8) {
         let byte_index = index / 8;
@@ -106,9 +113,6 @@ where
     fn from_value_to_array(value_ref: &bool) -> Self {
         unimplemented!("Maybe one day")
     }
-    fn from_value_to_box_array(value_ref: &bool) -> Self {
-        unimplemented!("Maybe one day")
-    }
 
     #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
     fn from_value_to_vec(value: &bool, size: usize) -> Self {
@@ -118,20 +122,12 @@ where
     fn from_iter_to_array(iter: impl Iterator<Item = bool>) -> Self {
         unimplemented!("Maybe one day")
     }
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
-    fn from_iter_to_box_array(iter: impl Iterator<Item = bool>) -> Self {
-        unimplemented!("Maybe one day")
-    }
     #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
     fn from_iter_to_vec(iter: impl Iterator<Item = bool>) -> Self {
         unimplemented!("Maybe one day")
     }
 
     fn from_fn_to_array(f: impl FnMut() -> bool) -> Self {
-        unimplemented!("Maybe one day")
-    }
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
-    fn from_fn_to_box_array(f: impl FnMut() -> bool) -> Self {
         unimplemented!("Maybe one day")
     }
     #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
@@ -147,12 +143,6 @@ where
     fn from_default_to_array() -> Self {
         Self {
             byte_slice: ByteSlice::from_default_to_array(),
-        }
-    }
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_box"))]
-    fn from_default_to_box_array() -> Self {
-        Self {
-            byte_slice: ByteSlice::from_default_to_box_array(),
         }
     }
     #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
