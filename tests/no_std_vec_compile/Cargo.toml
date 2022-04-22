@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 ranging = { path = "../..", features = ["no_std", "no_std_vec"]}
+slicing = { path = "../..", features = ["no_std", "no_std_vec"]}
 
 [profile.dev]
 panic = "abort"

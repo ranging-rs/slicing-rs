@@ -9,6 +9,6 @@ edition = "2021"
 no_std = []
 
 [dependencies]
-ranging = { path = "../.." }
+slicing = { path = "../.." }
 # If you do add - features = ["std"] - here temporarily, do NOT commit that:
 # ranging = { path = "../.." , features = ["std"]}

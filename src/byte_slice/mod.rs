@@ -1,5 +1,4 @@
 use crate::abstra::NewLike;
-use crate::bool_flag::BoolFlagSet;
 use crate::slices::{ByteSlice, SliceBackedChoice, SliceDefault};
 
 /// Given `num_bits`, return number of bytes required to cover all those bits.
@@ -193,10 +192,6 @@ where
         }
     }
 }
-
-/// Backed by a packed slice of bits (rounded up to bytes). That results not
-/// only in 8x less storage,  but in less cache & RAM bandwidth => faster.
-pub type Set<'s, T, I, const N: usize> = BoolFlagSet<'s, T, I, ByteSliceBoolStorage<'s, N>, N>;
 
 #[derive(Debug)]
 pub struct ByteSliceBoolIter<'a> {

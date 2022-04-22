@@ -6,6 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ranging = { path = "../..", features = ["std"] }
+slicing = { path = "../..", features = ["std"] }
 [dev-dependencies]
 any_std = { path = "../any_std" }
