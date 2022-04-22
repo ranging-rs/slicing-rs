@@ -1,7 +1,7 @@
 use crate::abstra::NewLike;
 use crate::set::Set;
 use core::hash::Hash;
-use std::collections::{hash_set, HashSet};
+use std::collections::{hash_set, hash_set::Iter, HashSet};
 
 #[cfg(not(feature = "no_std"))]
 #[derive(Debug, Clone)]
@@ -16,6 +16,13 @@ impl<T: Hash + Eq + Clone> Set<T> for HashedSet<T> {
         T: 'a,
         Self: 'a,
     ;
+
+    type ITERREF<'a> = Iter<'a, T>
+    where
+        T: 'a,
+        Self: 'a,
+    ;
+
     fn contains(&self, value: &T) -> bool {
         self.set.contains(value)
     }
@@ -29,6 +36,14 @@ impl<T: Hash + Eq + Clone> Set<T> for HashedSet<T> {
         HashedSetIter {
             set_iter: self.set.iter(),
         }
+    }
+
+    fn supports_iter_ref() -> bool {
+        true
+    }
+
+    fn iter_ref<'a>(&'a self) -> Self::ITERREF<'a> {
+        self.set.iter()
     }
 }
 #[cfg(not(feature = "no_std"))]

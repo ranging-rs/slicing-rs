@@ -1,5 +1,6 @@
 use crate::abstra::NewLike;
 use crate::index::{Indexer, RangeIndexer};
+use crate::set::Set;
 use crate::slices::SliceDefault;
 use core::ops::Sub;
 use core::{fmt, marker::PhantomData};
@@ -27,11 +28,17 @@ impl<
         I: Indexer<T>,
         SL: 's + SliceDefault<'s, bool, N> + Clone + NewLike,
         const N: usize,
-    > crate::set::Set<T> for BoolFlagSet<'s, T, I, SL, N>
+    > Set<T> for BoolFlagSet<'s, T, I, SL, N>
 where
     SL::ITER<'s>: 's,
 {
     type ITER<'a> = BoolFlagSetIter<'a, T, I, SL::ITER<'a>> where T: 'a, Self: 'a;
+
+    type ITERREF<'a> = UnimplementedIterRef<'a, T>
+    where
+        T: 'a,
+        Self: 'a,
+    ;
 
     fn contains(&self, value: &T) -> bool {
         self.slice.get(self.indexer.index(value))
@@ -127,6 +134,17 @@ impl<'a, T: Clone, IND: Indexer<T>, SLIT: Iterator<Item = &'a bool>> Iterator
                 break None;
             }
         }
+    }
+}
+
+pub struct UnimplementedIterRef<'a, T: Clone + PartialEq> {
+    phantom: PhantomData<&'a T>,
+}
+
+impl<'a, T: Clone + PartialEq> Iterator for UnimplementedIterRef<'a, T> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<&'a T> {
+        unimplemented!();
     }
 }
 

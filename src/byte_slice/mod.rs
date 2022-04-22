@@ -1,3 +1,4 @@
+use crate::abstra::NewLike;
 use crate::bool_flag::BoolFlagSet;
 use crate::slices::{ByteSlice, SliceBackedChoice, SliceDefault};
 
@@ -11,6 +12,7 @@ pub const fn num_bits_to_bytes(num_bits: usize) -> usize {
     }
 }
 
+#[derive(Clone)]
 pub struct ByteSliceBoolStorage<'a, const N: usize>
 where
     Self: 'a,
@@ -36,7 +38,6 @@ fn get_bit(byte: u8, bit_subindex: usize) -> bool {
     (byte & one_shifted) != 0
 }
 
-// @TODO impl SliceDefault?
 impl<'a, const N: usize> ByteSliceBoolStorage<'a, N>
 where
     [(); num_bits_to_bytes(N)]:,
@@ -181,8 +182,20 @@ where
     }
 }
 
-/// Backed by a packed slice of bits (rounded up to bytes). That results not only in 8x less storage,  but in less cache & RAM bandwidth => faster.
+impl<'a, const N: usize> NewLike for ByteSliceBoolStorage<'a, N>
+where
+    Self: 'a,
+    [(); num_bits_to_bytes(N)]:,
+{
+    fn new_like(&self) -> Self {
+        Self {
+            byte_slice: self.byte_slice.new_like(),
+        }
+    }
+}
 
+/// Backed by a packed slice of bits (rounded up to bytes). That results not
+/// only in 8x less storage,  but in less cache & RAM bandwidth => faster.
 pub type Set<'s, T, I, const N: usize> = BoolFlagSet<'s, T, I, ByteSliceBoolStorage<'s, N>, N>;
 
 #[derive(Debug)]

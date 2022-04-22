@@ -4,12 +4,14 @@
 mod bool_slice_tests {
     use any_std::slices::bool_slice::assert_equal_items;
     use ranging::slices::BoolSlice;
-    use ranging::slices::Slice;
+    use ranging::slices::{Slice, SliceDefault};
 
     #[test]
     fn construct_from_existing_data() {
         any_std::slices::bool_slice::construct_from_existing_data();
 
+        // std-specific
+        // @TODO move to any_std/ and cfg conditionally compile
         let vector = vec![true, false];
         assert_equal_items(&<BoolSlice<2>>::from_vec(vector), &[true, false]);
     }
@@ -20,21 +22,18 @@ mod bool_slice_tests {
     }
 
     #[test]
-    /// Test that `SliceStorage::new_with_vec()` is empty, regardless of const generic param N.
-    /// TODO check the size against the param to `new_with_vec`
-    fn new_with_vec_is_empty() {
-        let bool_slice = BoolSlice::<0>::new_with_vec(0);
+    fn from_vec_etc() {
+        // Test that `SliceStorage::from_vec_new()` is empty, regardless of const generic param N.
+        let mut bool_slice = BoolSlice::<0>::from_vec_new();
         assert!(bool_slice.shared_slice().is_empty());
+        assert_eq!(bool_slice.mutable_vec().capacity(), 0);
         assert_equal_items(&bool_slice, &[]);
 
-        let bool_slice = <BoolSlice<2>>::new_with_vec(2);
+        let mut bool_slice = <BoolSlice<2>>::from_vec_with_capacity(2);
         assert!(bool_slice.shared_slice().is_empty());
+        assert!(bool_slice.mutable_vec().capacity() >= 2);
         assert_equal_items(&bool_slice, &[]);
 
-        let vec_of_four = Vec::<u32>::with_capacity(4);
-        assert!(vec_of_four.capacity() >= 4);
-        //println!("vec_of_four: {}", vec_of_four.len());
-        //assert!(false)
     }
 
     #[test]
