@@ -62,6 +62,9 @@ impl<T: Hash + Eq> HashedSet<T> {
             set: HashSet::new(),
         }
     }
+    pub fn new_with(set: HashSet<T>) -> Self {
+        Self { set }
+    }
 }
 
 #[cfg(not(feature = "no_std"))]

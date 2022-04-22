@@ -3,6 +3,8 @@ use ranging::bool_slice::set::UnpackedSet;
 use ranging::byte_slice::ByteSliceBoolStorage;
 use ranging::index::{Indexer, RangeIndexer};
 use ranging::set::Set;
+#[cfg(all(not(feature = "no_std"), feature = "std"))]
+use ranging::hash::set::HashedSet;
 use ranging::slices::{BoolSlice, SliceDefault};
 
 pub fn common(set: &mut impl Set<usize>) {
@@ -19,16 +21,28 @@ pub fn common(set: &mut impl Set<usize>) {
     //debug_assert!()
 }
 
+fn indexer_usize() -> RangeIndexer::<usize> {
+    RangeIndexer::new(&0)
+}
+
 pub fn unpacked() {
-    let indexer = RangeIndexer::<usize>::new(&0);
+    let indexer = indexer_usize();
     let mut set = UnpackedSet::new(BoolSlice::<10>::from_default_to_array(), indexer);
 
     common(&mut set);
 }
 
 pub fn packed() {
-    let indexer = RangeIndexer::<usize>::new(&0);
+    let indexer = indexer_usize();
     let mut set = PackedSet::new(ByteSliceBoolStorage::<10>::from_default_to_array(), indexer);
+
+    common(&mut set);
+}
+
+#[cfg(all(not(feature = "no_std"), feature = "std"))]
+pub fn hashed() {
+    let indexer = indexer_usize();
+    let mut set = HashedSet::<usize>::new();
 
     common(&mut set);
 }

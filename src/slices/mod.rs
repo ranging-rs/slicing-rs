@@ -32,6 +32,22 @@ macro_rules! slice_trait {
         #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
         fn from_vec(vector: Vec<T>) -> Self;
 
+        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+        fn from_vec_with_capacity(capacity: usize) -> Self
+        where
+            Self: Sized,
+        {
+            Self::from_vec(Vec::with_capacity(capacity))
+        }
+
+        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+        fn from_vec_new() -> Self
+        where
+            Self: Sized,
+        {
+            Self::from_vec(Vec::new())
+        }
+
         /// Non-transfer constructor mutably referring to a given `vector`. It transfers
         /// ownership of the (mutable) reference itself.
         /// The only benefit of this function, as compared to `from_mutable_slice`,
@@ -237,7 +253,7 @@ where
 /// on its own.
 /// The extra abstractions also make it compatible with (limited and adapted)
 /// hash set/hash map. Slice or hash set/hash then serve as pluggable in
-/// (range-based) `ranging::byte_slice::ByteSliceBoolStorage` and in
+/// (range-based) `ranging::byte_slice::ByteSliceBoolStorage` and as
 /// implementations of `ranging::set::Set` and `ranging::map::Map`.
 ///
 /// If array-based, the size is fixed at compile time through a const generic param `N`.

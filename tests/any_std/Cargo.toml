@@ -10,3 +10,5 @@ no_std = []
 
 [dependencies]
 ranging = { path = "../.." }
+# If you do add - features = ["std"] - here temporarily, do NOT commit that:
+# ranging = { path = "../.." , features = ["std"]}
