@@ -27,7 +27,7 @@ fn panic(_info: &PanicInfo) -> ! {
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    any_std::slices::bool_slice::construct_from_existing_data();
-    any_std::slices::bool_slice::new_contains_initial_false();
+    slicing_any_std::slices::bool_slice::construct_from_existing_data();
+    slicing_any_std::slices::bool_slice::new_contains_initial_false();
     loop {}
 }

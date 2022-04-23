@@ -1,5 +1,5 @@
 [package]
-name = "no_std_basic_compile"
+name = "slicing_no_std_basic_compile"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 slicing = { path = "../..", features = ["no_std"]}
-any_std = { path = "../any_std", features = ["no_std"] }
+slicing_any_std = { path = "../slicing_any_std", features = ["no_std"] }
 
 [profile.dev]
 panic = "abort"
