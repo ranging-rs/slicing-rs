@@ -1,13 +1,13 @@
-#[cfg(feature = "no_std_vec")]
-extern crate alloc;
-#[cfg(feature = "no_std_vec")]
-use alloc::vec::Vec;
-
 /// Helpers for (unpacked) bool slice. Used both by tests in this project, and by tests in `ok_std/` and `no_std_*/` projects.
 pub mod bool_slice {
     use slicing::slices::BoolSlice;
     use slicing::slices::SliceDefault;
     use slicing::slices::SliceStorageDefault;
+    // If this module were in the file of its parent module, do NOT have the following three at the parent module's level. Otherwise macro vec![] would not resolve! (Even more confusing: If you did have `use alloc::vec::Vec` in at the parent module level in the same file, struct `Vec` would resolve here (at the child module level) - unlike `vec![]`, which would not resolve here.)
+    #[cfg(feature = "no_std_vec")]
+    extern crate alloc;
+    #[cfg(feature = "no_std_vec")]
+    use alloc::vec;
 
     /// Assert that `bool_based_slice` has same size and items as `slice`.
     fn assert_equal_items<const N: usize>(
@@ -72,6 +72,7 @@ mod bool_slice_tests {
     }
 
     #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+    #[test]
     pub fn from_vec_etc() {
         super::bool_slice::from_vec_etc();
     }

@@ -1,0 +1,10 @@
+[package]
+name = "slicing_no_std_vec_emulate"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+slicing = { path = "../..", features = ["no_std", "no_std_vec"]}
+slicing_any_std = { path = "../slicing_any_std", features = ["no_std", "no_std_vec"] }
