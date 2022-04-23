@@ -1,8 +1,8 @@
 /// Helpers for (unpacked) bool slice. Used both by tests in this project, and by tests in `ok_std/` and `no_std_*/` projects.
 pub mod bool_slice {
-    use ranging::slices::BoolSlice;
-    use ranging::slices::SliceDefault;
-    use ranging::slices::SliceStorageDefault;
+    use slicing::slices::BoolSlice;
+    use slicing::slices::SliceDefault;
+    use slicing::slices::SliceStorageDefault;
 
     /// Assert that `bool_based_slice` has same size and items as `slice`.
     pub fn assert_equal_items<const N: usize>(

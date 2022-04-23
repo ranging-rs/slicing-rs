@@ -1,5 +1,9 @@
 use crate::abstra::NewLike;
 use crate::slices::{ByteSlice, SliceBackedChoice, SliceDefault};
+#[cfg(feature = "no_std_vec")]
+extern crate alloc;
+#[cfg(feature = "no_std_vec")]
+use alloc::vec::Vec;
 
 /// Given `num_bits`, return number of bytes required to cover all those bits.
 pub const fn num_bits_to_bytes(num_bits: usize) -> usize {
