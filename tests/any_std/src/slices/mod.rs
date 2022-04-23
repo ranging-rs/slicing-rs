@@ -1,3 +1,8 @@
+#[cfg(feature = "no_std_vec")]
+extern crate alloc;
+#[cfg(feature = "no_std_vec")]
+use alloc::vec::Vec;
+
 /// Helpers for (unpacked) bool slice. Used both by tests in this project, and by tests in `ok_std/` and `no_std_*/` projects.
 pub mod bool_slice {
     use slicing::slices::BoolSlice;
@@ -5,7 +10,7 @@ pub mod bool_slice {
     use slicing::slices::SliceStorageDefault;
 
     /// Assert that `bool_based_slice` has same size and items as `slice`.
-    pub fn assert_equal_items<const N: usize>(
+    fn assert_equal_items<const N: usize>(
         bool_based_slice: &SliceStorageDefault<bool, N>,
         slice: &[bool],
     ) {
@@ -27,10 +32,30 @@ pub mod bool_slice {
         assert_equal_items(&(BoolSlice::<2>::from_shared(&array)), &[true, false]);
         assert_equal_items(&(BoolSlice::<2>::from_mutable(&mut array)), &[true, false]);
         assert_equal_items(&BoolSlice::<2>::from_array(array), &[true, false]);
+
+        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+        {
+            let vector = vec![true, false];
+            assert_equal_items(&<BoolSlice<2>>::from_vec(vector), &[true, false]);
+        }
     }
 
     pub fn new_contains_initial_false() {
         assert_equal_items(&BoolSlice::<1>::from_default_to_array(), &[false]);
+    }
+
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+    pub fn from_vec_etc() {
+        // Test that `SliceStorage::from_vec_new()` is empty, regardless of const generic param N.
+        let mut bool_slice = BoolSlice::<0>::from_vec_new();
+        assert!(bool_slice.shared_slice().is_empty());
+        assert_eq!(bool_slice.mutable_vec().capacity(), 0);
+        assert_equal_items(&bool_slice, &[]);
+
+        let mut bool_slice = <BoolSlice<2>>::from_vec_with_capacity(2);
+        assert!(bool_slice.shared_slice().is_empty());
+        assert!(bool_slice.mutable_vec().capacity() >= 2);
+        assert_equal_items(&bool_slice, &[]);
     }
 }
 
@@ -44,5 +69,10 @@ mod bool_slice_tests {
     #[test]
     fn new_contains_initial_false() {
         super::bool_slice::new_contains_initial_false();
+    }
+
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+    pub fn from_vec_etc() {
+        super::bool_slice::from_vec_etc();
     }
 }
