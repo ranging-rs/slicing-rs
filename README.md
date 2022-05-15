@@ -1,5 +1,5 @@
 # Purpose
-Abstracted slices in Rust.
+Abstracted slices and slice-likes types in Rust.
 
 # Main principles
 ## API and source
@@ -24,7 +24,7 @@ https://doc.rust-lang.org/nightly/rustc/platform-support.html#tier-2.
 - libraries can use `no_std_vec` feature for `Vec`-based functionality, and `std` for full functionality (including `HashMap`-based) with conditional compilation (controlled by their features). Then such libraries can be used in either `std` or `no_std` projects.
 
 ## Array size features
-See features in [Cargo.toml](./Cargo.toml) and their respective [tests/](./tests/).
+See features in [Cargo.toml](./Cargo.toml) and their respective [test_crates/](test_crates).
 
 # Module name (and hence full qualified name) conventions
 Some full qualified trait/struct/module names repeat their parts. Better have more granular module paths, and some name repetition in file paths and module names (like `slices::bool_slice`), rather than long (source) files).
