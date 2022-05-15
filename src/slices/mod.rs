@@ -267,20 +267,20 @@ where
 ///  `SliceStorage`. Then
 ///
 /// -  if `size_for_array_only` is enabled, we allow `SliceStorage::Array`
-/// variant only. We forbid (runtime) use of any other `SliceStorage` variants
-///  (`SliceStorage::Shared`...) for non-zero `N`.
+/// variant only. And we forbid (at runtime) use of any other `SliceStorage`
+/// variants (`SliceStorage::Shared`...) for non-zero `N`.
 ///  
-/// That prevents us from
-///  wasting (usually stack) unused memory. However, we have to type all
-///  non-array variants as having `N = 0`, and hence we can't assign/pass those
-///  non-array variants to an array variant.
+/// That prevents us from wasting memory (and fragmenting CPU cache). However,
+/// we have to type all non-array variants as having `N = 0`, and hence we
+/// can't assign/pass those non-array variants to an array variant.
 ///
 /// - if `size_for_array_only` is disabled, we allow any variants of
-///  `SliceStorage` (as applicable to the choice of `std` or `no_std`). That
-///  gives code flexibility (as we can assign/pass any variants), but each
-///  `SliceStorage` takes that array space - even if not used.
+/// `SliceStorage` (as applicable to the choice of `std` or `no_std`). That
+/// gives code flexibility (as we can assign/pass any variants), but each
+/// `SliceStorage` takes that array space - even if not used.
 ///
-/// If `N = 0`, we either allow an array of size `0`, or we disable array variant.
+/// If `N = 0`, we either allow an array of size `0`, or we disable array
+/// variant.
 ///
 /// - if `size_for_array_only` is enabled, we forbid (runtime) use of
 ///  `SliceStorage::Array` (with that `N = 0`). Use

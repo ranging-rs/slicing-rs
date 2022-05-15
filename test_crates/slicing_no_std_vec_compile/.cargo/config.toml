@@ -1,0 +1,22 @@
+# Based on https://droogmic.github.io/microrust/getting-started/01.00.BUILD.html
+# Automatically select this target when `cargo build`.
+[build]
+# Building successfully (in the same order as at https://doc.rust-lang.org/nightly/rustc/platform-support.html#tier-2)
+ target = "aarch64-unknown-none-softfloat"
+# target = "aarch64-unknown-none"
+# and possibly more
+
+# Build fails (in the same order as at https://doc.rust-lang.org/nightly/rustc/platform-support.html#tier-2):
+# target = "armebv7r-none-eabi" # -> rust-lld: error: /home/pkehl/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/armebv7r-none-eabi/lib/libcore-f9e4d8557f4ba8db.rlib(core-f9e4d8557f4ba8db.core.7cf1b70b-cgu.0.rcgu.o):(.rodata.cst16): offset is outside the section
+# target = "armebv7r-none-eabihf" # -> rust-lld: error: /home/pkehl/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/armebv7r-none-eabihf/lib/libcore-ba16e41c7a0d7704.rlib(core-ba16e41c7a0d7704.core.25dc9754-cgu.0.rcgu.o):(.rodata.cst16): offset is outside the section
+
+# target = "armv7a-none-eabi"   # -> undefined symbol: __aeabi_unwind_cpp_pr0
+# target = "armv7r-none-eabi"   # -> undefined symbol: __aeabi_unwind_cpp_pr0
+# target = "armv7r-none-eabihf" # -> undefined symbol: __aeabi_unwind_cpp_pr0
+
+# target = "thumbv7m-none-eabi" # -> undefined symbol: __aeabi_unwind_cpp_pr0
+# --- even though Cargo.toml specifies "abort"
+# target = "i586-pc-windows-msvc" # -> needs link.exe
+# target = "nvptx64-nvidia-cuda" # -> needs rust-ptx-linker; but then it fails: [... ERROR ptx_linker]   caused by: Undefined references: ["rust_oom"]
+
+# and possibly more

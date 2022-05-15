@@ -2,8 +2,6 @@
 #![no_main]
 #![feature(default_alloc_error_handler)]
 
-// @TODO "use" & code with `Vec`-based types
-
 use core::alloc::{GlobalAlloc, Layout};
 use core::panic::PanicInfo;
 
@@ -29,5 +27,8 @@ fn panic(_info: &PanicInfo) -> ! {
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
+    slicing_any_std::slices::bool_slice::construct_from_existing_data();
+    //slicing_any_std::slices::bool_slice::new_contains_initial_false();
+    //slicing_any_std::slices::bool_slice::from_vec_etc();
     loop {}
 }

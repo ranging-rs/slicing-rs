@@ -1,5 +1,5 @@
 /target
-/tests/*/target
+/test_crates/*/target
 /Cargo.lock
-/tests/*/Cargo.lock
-
+/test_crates/*/Cargo.lock
+.envrc

@@ -1,4 +1,4 @@
-// @TODO RustDoc from ../README.md.
+// @TODO auto-include RustDoc from ../README.md.
 
 #![cfg_attr(feature = "no_std", no_std)]
 #![feature(generic_associated_types)]
