@@ -1,6 +1,8 @@
 # Test crates
+## Test crate names
 Name of each subdirectory under [../test_crates] starts with `slicing_`. That way we can easily distinguish them in VS Code from similar subdirectories of `ranging-rs`[TODO web link] (when working on both).
 
+## # Test crate name prefixes
 Tests that are universal (regardless of `std/no_std`)  are in [../test_crates/slicing_any_std/]. Ones that are for `std` have paths starting with `test_crates/slicing_ok_std_`. `no_std` tests are in several directories with paths starting with `test_crates/slicing_no_std_`. All `std` and `no_std` test crates re-use parts of [../test_crates/slicing_any_std/].
 
 Various `std` and `no_std` test crates also have their own tests (on top of tests from [../test_crates/slicing_any_std/]).
@@ -11,6 +13,8 @@ Various `std` and `no_std` test crates also have their own tests (on top of test
 - starting with `slicing_no_std_vec_` with `Vec` (`core::collections::Vec`), and
 - ending with `_build` for testing build only, or
 - ending with `_run` for running tests only (as if in `no_std`, but using your default target).
+
+Even though these crates have long names, we don't put them under any subdirectory structure. (As per TODO 'Test crates':) We want their names to be unique (to differentiate them in VS Code).
 
 ## Testing features and platforms
 The middles names of all `no_std` project names (having paths starting with `test_crates/slicing_no_std_`), and last names of all `std` project names (having paths starting with `test_crates/slicing_ok_std_`) indicate what crate features are being tested.

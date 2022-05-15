@@ -7,7 +7,7 @@ Abstracted slices in Rust.
 - Ergonomic: Simple (rather than exotic but complex). For example:
 -- TODO Hashed could be a value object (transparent wrapper). It would make it more "future-proof"/flexible, but not backwards-compatible with your/third party's existing API's. Implementing it directly for `std::collections::HashMap` (when using `std` feature) makes it a drop-in replacement for `HashMap` - easy to use.
 -- `size_for_array_only`, `allow_empty_arrays`, `disable_empty_arrays` are crate features, rather than per-struct or per-object fields.
-- Generic: Generics, constant generic parameters and associated generic types are essential for memory efficiency and type safety. The drawbacks are longer build times and larger binaries. We optimize it where worthwhile.
+- Generic: Generics, constant generic parameters and associated generic types are essential to memory efficiency and type safety. The drawbacks are longer build times and larger binaries. We optimize it where worthwhile.
 
 ## Requiring Nightly Rust
 As of mid 2022, we need Rust nightly (for const time generics and other language features). Otherwise this couldn't be so ergonomic.

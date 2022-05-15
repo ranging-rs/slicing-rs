@@ -92,11 +92,7 @@ macro_rules! slice_trait {
         #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
         fn from_iter_to_vec(iter: impl Iterator<Item = T>) -> Self;
 
-        fn from_fn_to(
-            mut f: impl FnMut() -> T,
-            size: usize,
-            storage_type: SliceBackedChoice,
-        ) -> Self
+        fn from_fn_to(f: impl FnMut() -> T, size: usize, storage_type: SliceBackedChoice) -> Self
         where
             Self: Sized,
         {
@@ -163,10 +159,24 @@ macro_rules! slice_trait_default {
 //@TODO in `Set` module/structs: `no_std` friendly:
 //use alloc::collections::BTreeMap;
 
+/** Check that given `N` is non-zero if crate feature `disable_empty_arrays` is
+ *  enabled. Otherwise panic.
+ *  Return zero.
+ **/
+#[allow(unused_variables)]
+pub const fn check_empty_array_size(array_size: usize) -> usize {
+    #[cfg(feature = "disable_empty_arrays")]
+    if array_size == 0 {
+        panic!("Empty arrays are not allowed. See disable_empty_arrays.");
+    };
+    0
+}
+
 /// Like `SliceClone`, but for `Copy` types.
 pub trait Slice<'a, T: 'a + Clone + Copy + PartialEq, const N: usize>
 where
     Self: 'a,
+    [(); check_empty_array_size(N)]: Sized,
 {
     slice_trait!(Slice);
 }
@@ -179,10 +189,16 @@ where
     fn collect_to<S: Slice<'a, Self::Item, N>, const N: usize>(
         self,
         storage_type: SliceBackedChoice,
-    ) -> S;
-    fn collect_to_array<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S;
+    ) -> S
+    where
+        [(); check_empty_array_size(N)]: Sized;
+    fn collect_to_array<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S
+    where
+        [(); check_empty_array_size(N)]: Sized;
     #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-    fn collect_to_vec<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S;
+    fn collect_to_vec<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S
+    where
+        [(); check_empty_array_size(N)]: Sized;
 }
 pub trait CollectToClone<'a>
 where
@@ -203,7 +219,10 @@ impl<'a, T: 'a + Clone + Copy + PartialEq, ITER: Iterator<Item = T>> CollectTo<'
     fn collect_to<S: Slice<'a, Self::Item, N>, const N: usize>(
         self,
         storage_type: SliceBackedChoice,
-    ) -> S {
+    ) -> S
+    where
+        [(); check_empty_array_size(N)]: Sized,
+    {
         match storage_type {
             SliceBackedChoice::Array => self.collect_to_array(),
             #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
@@ -211,11 +230,17 @@ impl<'a, T: 'a + Clone + Copy + PartialEq, ITER: Iterator<Item = T>> CollectTo<'
             _ => unimplemented!("Never"),
         }
     }
-    fn collect_to_array<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S {
+    fn collect_to_array<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S
+    where
+        [(); check_empty_array_size(N)]: Sized,
+    {
         S::from_iter_to_array(self)
     }
     #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-    fn collect_to_vec<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S {
+    fn collect_to_vec<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S
+    where
+        [(); check_empty_array_size(N)]: Sized,
+    {
         S::from_iter_to_vec(self)
     }
 }
@@ -431,7 +456,7 @@ fn fn_to_array<T: Clone, const N: usize>(mut f: impl FnMut() -> T) -> [T; N] {
 macro_rules! slice_storage_impl {
     ($enum_name:ident, $copy_or_clone_value: ident, $copy_or_clone_to_array: ident) => {
         type ITER<'i> = core::slice::Iter<'i, T>
-                                                                        where T: 'i, Self: 'i;
+                        where T: 'i, Self: 'i;
 
         type NARR = $enum_name<'a, T, 0>;
 
@@ -494,21 +519,20 @@ macro_rules! slice_storage_impl {
         }
 
         fn from_iter_to_array(mut iter: impl Iterator<Item = T>) -> Self {
-            Self::Array( fn_to_array(|| iter.next().unwrap()))
+            Self::Array(fn_to_array(|| iter.next().unwrap()))
         }
         #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
         fn from_iter_to_vec(iter: impl Iterator<Item = T>) -> Self {
-            Self::Vec( iter.collect::<Vec<_>>())
+            Self::Vec(iter.collect::<Vec<_>>())
         }
 
-        fn from_fn_to_array(mut f: impl FnMut() -> T) -> Self {
-            Self::Array( fn_to_array(f))
+        fn from_fn_to_array(f: impl FnMut() -> T) -> Self {
+            Self::Array(fn_to_array(f))
         }
         #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
         fn from_fn_to_vec(mut f: impl FnMut() -> T, size: usize) -> Self {
-            Self::Vec( (0..size).map( |_| f()).collect::<Vec<_>>())
+            Self::Vec((0..size).map(|_| f()).collect::<Vec<_>>())
         }
-
 
         #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
         /// Return `self` if `Vec`-based, otherwise a new `Vec`-based instance populated from `self`.
@@ -581,11 +605,13 @@ macro_rules! slice_storage_impl {
                 }
             }
         }
-    }
+    };
 }
 
 impl<'a, T: 'a + Clone + Copy + PartialEq, const N: usize> Slice<'a, T, N>
     for SliceStorage<'a, T, N>
+where
+    [(); check_empty_array_size(N)]: Sized,
 {
     slice_storage_impl!(SliceStorage, copy_value, copy_to_array);
 }
