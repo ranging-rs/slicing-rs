@@ -1,5 +1,8 @@
 // @TODO auto-include RustDoc from ../README.md.
 
+// @TODO remove & cleanup later
+#![allow(unused_variables)]
+
 #![cfg_attr(feature = "no_std", no_std)]
 #![allow(incomplete_features)]
 #![feature(generic_associated_types)]
