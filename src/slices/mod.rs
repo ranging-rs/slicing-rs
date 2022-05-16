@@ -3,6 +3,24 @@ extern crate alloc;
 #[cfg(feature = "no_std_vec")]
 use alloc::vec::Vec;
 
+/// Conditionally compile - only if heap is supported.
+/// Convention: In places where we can't use this macro, such as conditionally
+/// compiling branches of a `match` statement, we use
+/// ```
+/// #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+/// ```
+/// including the comment
+/// ```
+///  ///with_heap
+/// ```
+/// so that we can search for both usages easily.
+macro_rules! with_heap {
+    ($($item:tt)*) => {
+        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+        $($item)*
+    }
+}
+
 /// Helper that generates code shared between various Slice traits.
 /// Non-hygienic, of course.
 // Purpose of separation from slice_trait_with_narr_size: When `disable_empty_arrays` feature is enabled, this makes `NARR` not be an array with 0 items (which would fail), but with one item.
@@ -43,33 +61,37 @@ macro_rules! slice_trait_with_narr_size {
         /// Array ownership transfer constructor.
         fn from_array(array: [T; N]) -> Self;
 
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-        fn from_vec(vector: Vec<T>) -> Self;
-
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-        fn from_vec_with_capacity(capacity: usize) -> Self
-        where
-            Self: Sized,
-        {
-            Self::from_vec(Vec::with_capacity(capacity))
+        with_heap! {
+            fn from_vec(vector: Vec<T>) -> Self;
         }
 
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-        fn from_vec_new() -> Self
-        where
-            Self: Sized,
-        {
-            Self::from_vec(Vec::new())
+        with_heap! {
+            fn from_vec_with_capacity(capacity: usize) -> Self
+            where
+                Self: Sized,
+            {
+                Self::from_vec(Vec::with_capacity(capacity))
+            }
         }
 
-        /// Non-transfer constructor mutably referring to a given `vector`. It transfers
-        /// ownership of the (mutable) reference itself.
-        /// The only benefit of this function, as compared to `from_mutable_slice`,
-        /// is that we can call `mutable_vec` on this instance.
-        /// This function doesn't need a shared/immutable alternative - for that
-        /// use simple `from_shared`.
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-        fn from_vec_ref(vector: &'a mut Vec<T>) -> Self;
+        with_heap! {
+            fn from_vec_new() -> Self
+            where
+                Self: Sized,
+            {
+                Self::from_vec(Vec::new())
+            }
+        }
+
+        with_heap! {
+            /// Non-transfer constructor mutably referring to a given `vector`. It transfers
+            /// ownership of the (mutable) reference itself.
+            /// The only benefit of this function, as compared to `from_mutable_slice`,
+            /// is that we can call `mutable_vec` on this instance.
+            /// This function doesn't need a shared/immutable alternative - for that
+            /// use simple `from_shared`.
+            fn from_vec_ref(vector: &'a mut Vec<T>) -> Self;
+        }
 
         // Populating constructors - creating an instance that owns the data.
         fn from_value(value_ref: &'a T, size: usize, storage_type: SliceBackedChoice) -> Self
@@ -78,14 +100,15 @@ macro_rules! slice_trait_with_narr_size {
         {
             match storage_type {
                 SliceBackedChoice::Array => Self::from_value_to_array(value_ref),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
                 SliceBackedChoice::Vec => Self::from_value_to_vec(value_ref, size),
                 _ => unimplemented!("Never"),
             }
         }
         fn from_value_to_array(value: &'a T) -> Self;
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-        fn from_value_to_vec(value: &'a T, size: usize) -> Self;
+        with_heap! {
+            fn from_value_to_vec(value: &'a T, size: usize) -> Self;
+        }
 
         fn from_iter_to(
             iter: impl Iterator<Item = T>,
@@ -97,14 +120,15 @@ macro_rules! slice_trait_with_narr_size {
         {
             match storage_type {
                 SliceBackedChoice::Array => Self::from_iter_to_array(iter),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
                 SliceBackedChoice::Vec => Self::from_iter_to_vec(iter),
                 _ => unimplemented!("Never"),
             }
         }
         fn from_iter_to_array(iter: impl Iterator<Item = T>) -> Self;
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-        fn from_iter_to_vec(iter: impl Iterator<Item = T>) -> Self;
+        with_heap! {
+            fn from_iter_to_vec(iter: impl Iterator<Item = T>) -> Self;
+        }
 
         fn from_fn_to(f: impl FnMut() -> T, size: usize, storage_type: SliceBackedChoice) -> Self
         where
@@ -112,14 +136,15 @@ macro_rules! slice_trait_with_narr_size {
         {
             match storage_type {
                 SliceBackedChoice::Array => Self::from_fn_to_array(f),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
                 SliceBackedChoice::Vec => Self::from_fn_to_vec(f, size),
                 _ => unimplemented!("Never"),
             }
         }
         fn from_fn_to_array(f: impl FnMut() -> T) -> Self;
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-        fn from_fn_to_vec(f: impl FnMut() -> T, size: usize) -> Self;
+        with_heap! {
+            fn from_fn_to_vec(f: impl FnMut() -> T, size: usize) -> Self;
+        }
 
         // Reference/link-based OR Copy? constructors. Ever needed? Couldn't we just pass a shared/mutable reference to the existing Slice instance?
         /*fn to_shared_based<'s>(&'s self) -> Self
@@ -127,22 +152,25 @@ macro_rules! slice_trait_with_narr_size {
         */
 
         /// Replace with the same or a new vec-based instance.
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-        fn to_vec_based(self) -> Self;
+        with_heap! {
+            fn to_vec_based(self) -> Self;
+        }
 
         // Copy constructors.
         // Again, any need for the following? Couldn't we just pass a &mut to the existing (vec-based) Slice instance?
         // fn to_vec_ref_based(&mut self) -> Self
 
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-        fn to_non_array_vec_based(&self) -> Self::NARR;
+        with_heap! {
+            fn to_non_array_vec_based(&self) -> Self::NARR;
+        }
 
         // Accessors
         fn shared_slice(&self) -> &[T];
         /// Implemented for all except for Shared-based slice.
         fn mutable_slice<'s>(&'s mut self) -> &'s mut [T];
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-        fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<T>;
+        with_heap! {
+            fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<T>;
+        }
     };
 }
 
@@ -159,14 +187,15 @@ macro_rules! slice_trait_default {
         {
             match storage_type {
                 SliceBackedChoice::Array => Self::from_default_to_array(),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
                 SliceBackedChoice::Vec => Self::from_default_to_vec(size),
                 _ => unimplemented!("Never"),
             }
         }
         fn from_default_to_array() -> Self;
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-        fn from_default_to_vec(size: usize) -> Self;
+        with_heap! {
+            fn from_default_to_vec(size: usize) -> Self;
+        }
     };
 }
 
@@ -209,10 +238,11 @@ where
     fn collect_to_array<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S
     where
         [(); check_empty_array_size(N)]:;
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-    fn collect_to_vec<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S
-    where
-        [(); check_empty_array_size(N)]:;
+    with_heap! {
+        fn collect_to_vec<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S
+        where
+            [(); check_empty_array_size(N)]:;
+    }
 }
 pub trait CollectToClone<'a>
 where
@@ -224,8 +254,9 @@ where
         storage_type: SliceBackedChoice,
     ) -> S;
     fn collect_to_array_clone<S: SliceClone<'a, Self::Item, N>, const N: usize>(self) -> S;
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+    with_heap! {
     fn collect_to_vec_clone<S: SliceClone<'a, Self::Item, N>, const N: usize>(self) -> S;
+    }
 }
 
 impl<'a, T: 'a + Clone + Copy + PartialEq, ITER: Iterator<Item = T>> CollectTo<'a> for ITER {
@@ -239,7 +270,7 @@ impl<'a, T: 'a + Clone + Copy + PartialEq, ITER: Iterator<Item = T>> CollectTo<'
     {
         match storage_type {
             SliceBackedChoice::Array => self.collect_to_array(),
-            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
             SliceBackedChoice::Vec => self.collect_to_vec(),
             _ => unimplemented!("Never"),
         }
@@ -250,12 +281,13 @@ impl<'a, T: 'a + Clone + Copy + PartialEq, ITER: Iterator<Item = T>> CollectTo<'
     {
         S::from_iter_to_array(self)
     }
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+    with_heap! {
     fn collect_to_vec<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S
     where
         [(); check_empty_array_size(N)]:,
     {
         S::from_iter_to_vec(self)
+    }
     }
 }
 impl<'a, T: 'a + Clone + PartialEq, ITER: Iterator<Item = T>> CollectToClone<'a> for ITER {
@@ -266,7 +298,7 @@ impl<'a, T: 'a + Clone + PartialEq, ITER: Iterator<Item = T>> CollectToClone<'a>
     ) -> S {
         match storage_type {
             SliceBackedChoice::Array => self.collect_to_array_clone(),
-            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
             SliceBackedChoice::Vec => self.collect_to_vec_clone(),
             _ => unimplemented!("Never"),
         }
@@ -274,9 +306,10 @@ impl<'a, T: 'a + Clone + PartialEq, ITER: Iterator<Item = T>> CollectToClone<'a>
     fn collect_to_array_clone<S: SliceClone<'a, Self::Item, N>, const N: usize>(self) -> S {
         S::from_iter_to_array(self)
     }
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+    with_heap! {
     fn collect_to_vec_clone<S: SliceClone<'a, Self::Item, N>, const N: usize>(self) -> S {
         S::from_iter_to_vec(self)
+    }
     }
 }
 
@@ -417,9 +450,9 @@ pub enum SliceBackedChoice {
     Shared,
     Mutable,
     Array,
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
     Vec,
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
     VecRef,
 }
 
@@ -429,9 +462,9 @@ impl SliceBackedChoice {
         match self {
             Shared | Mutable => false,
             Array => true,
-            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
             VecRef => false,
-            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
             Vec => true,
         }
     }
@@ -456,10 +489,10 @@ macro_rules! slice_storage_enum {
             Array([T; N]),
 
             /// Owned vector.
-            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
             Vec(Vec<T>),
 
-            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
             VecRef(&'a mut Vec<T>),
         }
     }
@@ -549,7 +582,7 @@ macro_rules! slice_storage_impl {
             Self::Array(array)
         }
 
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+        with_heap! {
         fn from_vec(vector: Vec<T>) -> Self {
             // Since N is const, this assert may be optimized away.
             #[cfg(feature = "size_for_array_only")]
@@ -557,16 +590,15 @@ macro_rules! slice_storage_impl {
             Self::Vec(vector)
         }
 
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
         fn from_vec_ref(vector: &'a mut Vec<T>) -> Self {
             Self::VecRef(vector)
         }
-
+        }
         fn from_value_to_array(value_ref: &'a T) -> Self {
             Self::Array($copy_or_clone_to_array(value_ref))
         }
 
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+        with_heap! {
         fn from_value_to_vec(value: &'a T, size: usize) -> Self {
             let mut vec = Vec::with_capacity(size);
             for _ in 0..size {
@@ -574,38 +606,35 @@ macro_rules! slice_storage_impl {
             }
             Self::Vec(vec)
         }
-
+        }
         fn from_iter_to_array(mut iter: impl Iterator<Item = T>) -> Self {
             Self::Array(fn_to_array(|| iter.next().unwrap()))
         }
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+        with_heap! {
         fn from_iter_to_vec(iter: impl Iterator<Item = T>) -> Self {
             Self::Vec(iter.collect::<Vec<_>>())
+        }
         }
 
         fn from_fn_to_array(f: impl FnMut() -> T) -> Self {
             Self::Array(fn_to_array(f))
         }
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+        with_heap! {
         fn from_fn_to_vec(mut f: impl FnMut() -> T, size: usize) -> Self {
             Self::Vec((0..size).map(|_| f()).collect::<Vec<_>>())
         }
 
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
         /// Return `self` if `Vec`-based, otherwise a new `Vec`-based instance populated from `self`.
         fn to_vec_based(self) -> Self {
             match self {
                 Self::Shared(slice) => Self::Vec(slice.iter().cloned().collect::<Vec<_>>()),
                 Self::Mutable(mutable) => Self::Vec(mutable.iter().cloned().collect::<Vec<_>>()),
                 Self::Array(arr) => Self::Vec(arr.iter().cloned().collect::<Vec<_>>()),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
                 Self::Vec(_) => self,
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
                 Self::VecRef(_) => self,
             }
         }
 
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
         fn to_non_array_vec_based(&self) -> Self::NARR {
             let v: Vec<T>;
             if let Self::Mutable(mutable_slice) = self {
@@ -614,15 +643,14 @@ macro_rules! slice_storage_impl {
                 let slice = match self {
                     Self::Array(array) => array,
                     Self::Shared(shared_slice) => *shared_slice,
-                    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
                     Self::Vec(vec) => vec,
-                    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
                     Self::VecRef(vec_ref) => *vec_ref,
                     _ => unreachable!(),
                 };
                 v = Vec::from_iter(slice.iter().cloned());
             }
             Self::NARR::Vec(v)
+        }
         }
 
         // Accessors
@@ -631,9 +659,9 @@ macro_rules! slice_storage_impl {
                 Self::Shared(slice) => slice,
                 Self::Mutable(slice) => slice,
                 Self::Array(array) => array,
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
                 Self::Vec(vec) => vec,
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
                 Self::VecRef(vec_ref) => *vec_ref,
             }
         }
@@ -645,14 +673,14 @@ macro_rules! slice_storage_impl {
                 }
                 Self::Mutable(slice) => slice,
                 Self::Array(array) => array,
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
                 Self::Vec(vec) => vec,
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
                 Self::VecRef(vec_ref) => *vec_ref,
             }
         }
 
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+        with_heap! {
         fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<T> {
             match self {
                 Self::Vec(vec) => vec,
@@ -661,6 +689,7 @@ macro_rules! slice_storage_impl {
                     unimplemented!("Works for Vec and VecRef only.")
                 }
             }
+        }
         }
     };
 }
@@ -716,13 +745,13 @@ macro_rules! slice_storage_default_impl {
                     to.$copy_or_clone_from_slice(*slice);
                     Self::Array(to)
                 }
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
                 Self::Vec(vec) => {
                     let mut to = $copy_or_clone_default();
                     to.$copy_or_clone_from_slice(vec);
                     Self::Array(to)
                 }
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
                 Self::VecRef(vec_ref) => {
                     let mut to = $copy_or_clone_default();
                     to.$copy_or_clone_from_slice(*vec_ref);
@@ -734,13 +763,14 @@ macro_rules! slice_storage_default_impl {
         fn from_default_to_array() -> Self {
             Self::Array($copy_or_clone_default())
         }
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+        with_heap! {
         fn from_default_to_vec(size: usize) -> Self {
             let mut vec = Vec::with_capacity(size);
             for _ in 0..size {
                 vec.push(T::default());
             }
             Self::Vec(vec)
+        }
         }
     };
 }
@@ -770,10 +800,10 @@ macro_rules! slice_storage_impl_clone {
                     unimplemented!("Can't clone a mutable slice.")
                 }
                 Self::Array(array) => Self::Array(array.clone()),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
                 Self::Vec(vec) => Self::Vec(vec.clone()),
                 // Can't clone a mutable reference. Clone the vector itself.
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
                 Self::VecRef(vec_ref) => Self::Vec((*vec_ref).clone()),
             }
         }
@@ -807,9 +837,9 @@ macro_rules! slice_storage_newlike_impl {
                     unimplemented!("Can't clone a mutable slice.")
                 }
                 Self::Array(_) => Self::Array($copy_or_clone_default()),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
                 Self::Vec(vec) => Self::Vec(Vec::with_capacity(vec.len())),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
                 Self::VecRef(_) => {
                     unimplemented!("Can't clone a mutable Vec reference.")
                 }
