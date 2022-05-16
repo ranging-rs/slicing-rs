@@ -15,7 +15,8 @@ macro_rules! slice_trait {
     };
 }
 
-/// Internal helper macro to workaround Rust's limitations on NARR's size parameter and its bounds.
+/// Workaround Rust's limitations on NARR's size parameter and its bounds.
+/// See https://github.com/ranging-rs/slicing-rs/issues/1
 macro_rules! slice_trait_with_narr_size {
     ($trait_name:ident, $narr_size:expr) => {
         type ITER<'i>: Iterator<Item = &'i T> = core::slice::Iter<'i, T> where T: 'i, Self: 'i;
@@ -120,7 +121,7 @@ macro_rules! slice_trait_with_narr_size {
         #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
         fn from_fn_to_vec(f: impl FnMut() -> T, size: usize) -> Self;
 
-        // Reference/link-based constructors. Ever needed? Couldn't we just pass a shared/mutable reference to the existing Slice instance?
+        // Reference/link-based OR Copy? constructors. Ever needed? Couldn't we just pass a shared/mutable reference to the existing Slice instance?
         /*fn to_shared_based<'s>(&'s self) -> Self
         fn to_mutable_based<'s>(&'s mut self) -> Self
         */
@@ -174,7 +175,7 @@ macro_rules! slice_trait_default {
 
 /** Check that given `N` is non-zero if crate feature `disable_empty_arrays` is
  *  enabled. Otherwise panic.
- *  Return zero.
+ *  Return array_size.
  **/
 #[allow(unused_variables)]
 pub const fn check_empty_array_size(array_size: usize) -> usize {
@@ -182,7 +183,7 @@ pub const fn check_empty_array_size(array_size: usize) -> usize {
     if array_size == 0 {
         panic!("Empty arrays are not allowed, due to disable_empty_arrays.");
     };
-    0
+    array_size
 }
 
 /// Like `SliceClone`, but for `Copy` types.
@@ -297,12 +298,15 @@ where
 /// If array-based, the size is fixed at compile time through a const generic param `N`.
 /// If slice-based or vec-based, its size can be any, as given at runtime. But for shared/mutable slice-based instances the size is fixed at instantiation.
 /// Vec-based instances can be resized.
-///     
-/// Param `N` indicates array size for SliceStorage::Array. It works together
-/// with crate feature `size_for_array_only`.
 ///
-/// In short: If `size_for_array_only` is enabled and size `N` is non-zero, we
-/// allow SliceStorage::Array` variant only.
+/// # Array size-related crate features
+/// Param `N` indicates array size for SliceStorage::Array. It applies
+/// depending on crate features `size_for_array_only`, `allow_empty_arrays` and
+/// `disable_empty_arrays`.
+///
+/// # size_for_array_only
+/// `size_for_array_only` in short: If `size_for_array_only` is enabled and
+/// size `N` is non-zero, we allow SliceStorage::Array` variant only.
 ///
 /// In detail:
 ///
@@ -311,7 +315,10 @@ where
 ///
 /// -  if `size_for_array_only` is enabled, we allow `SliceStorage::Array`
 /// variant only. And we forbid (at runtime) use of any other `SliceStorage`
-/// variants (`SliceStorage::Shared`...) for non-zero `N`.
+/// variants (`SliceStorage::Shared`...) for non-zero `N`. (Even though this
+/// check is specified for runtime, that is only due to Rust language
+/// limitations. The check, if complied with, is likely to be optimized away
+/// at compile time.)
 ///  
 /// That prevents us from wasting memory (and possibly fragmenting CPU caches).
 /// However, we have to type all non-array variants as having `N = 0`, and
@@ -334,34 +341,61 @@ where
 /// (for `SliceStorage::Array`) and we allow all other variants (as applicable
 /// according to `std` or `no_std`), too.
 ///
-/// # Naming convention for methods:
-/// - `as_***()` means conversion (sharing), but not a copy
-/// - `to_***()` means a copy.
+/// # library crates & size_for_array_only
+/// ## Make it flexible
+/// - use given non-zero `N` only for array-based purposes (often on stack, or
+///   in `no_std`). Otherwise use zero `N` for code pathways based on a
+///   slice/vector.
+/// - if you see frequent code pathways that copy/clone `Slice`s, and if you
+///   have heap, consider `to_non_array_vec_based()`.
+/// - check with `is_owned()`
+/// - use as_* methods (if we have them - TODO).
 ///
-/// # Array size `N` and zero sized arrays
-/// Generally,
-/// - test your crate with feature `size_for_array_only` enabled, and
-/// - don't hard code any non-zero `N` (unless sure), but have it come from
-///  the client. Those two rules will guide you to:
-/// - use given non-zero `N` only for array-based purposes (often on stack, or in `non_std`). Otherwise use `SliceStorage<T, 0>` for pathways based on a slice/vector.
-/// - use `as_non_array_***` methods whenever possible.
+/// Don't hard code any non-zero `N` (unless sure), but have it come from
+/// the client.
 ///
-/// `Slice` (and it implementations) have `const N: usize` and not `const N: Option<usize>`. The later
-///  would allow  granular (per generic type instance) intent as to whether the
-///  specific type (for its chosen `N`) allows arrays of the given size
-///  (whether zero or not), or whether it disables its array-based variant.
-/// However, that required extra bounds like `where [(); N.unwrap_or(0)]:`,
+/// ## Test
+/// Ship your crate without enabling `size_for_array_only`, but test it both
+/// with and without `size_for_array_only`. For that you need tests in separate
+/// test crates, so that you isolate this feature.
+///
+/// ## Test with size_for_array_only
+/// Enable `size_for_array_only` and test with  both zero `N` size and non-zero
+/// `N`. Only some methods/invariants will work for one, and some for the other.
+///
+/// ## Test without size_for_array_only
+/// Don't enable `size_for_array_only` and test with  both zero `N` size and
+/// non-zero `N`. Again, only some methods/invariants will work, respectively.
+///
+/// # allow_empty_arrays and disable_empty_array
+/// In short: Disabling empty arrays (invariants) is possible, but only
+/// globally. It applies to any implementations of Slice* traits and
+/// SliceStorage* and related structs/enums.
+///
+/// `Slice` (and it implementations) have `const N: usize` and not
+/// `const N: Option<usize>`. The later (or a similar custom enum) would allow
+/// granular (per generic type instance) intent as to whether the specific type
+/// (for its chosen `N`) allows arrays of the given size
+/// (whether zero or not), or whether it disables its array-based variant
+/// completely.
+///
+/// However, that would require extra bounds like `where [(); N.unwrap_or(0)]:`,
 /// not only in the `trait`s and `struct`s & `impl`, but also in any client
 /// code! Very unergonomic.
-/// Hence we have `const N: usize` instead. That means that specific types can't
-/// control/vary in whether they disable any array or whether they enable empty
-/// arrays. Such difference is possible only globally with crate features
-///  `allow_empty_arrays` & `disable_empty_arrays`. Those two features are
-/// mutually exclusive. If none of them is set, then with `N = 0` you can use
-/// both empty arrays (array-based variant) and, of course, any non-array
-/// variants (as applicable according to your `std or `non_std`).
 ///
-/// If `T` is `Copy`, use `Slice` instead. See also `SliceStorageClone` and
+/// Hence we have `const N: usize` instead. That means that specific types can't
+/// control whether they completely disable any array invariants, or whether
+/// they enable empty arrays. Such difference is possible only globally with
+/// crate features `allow_empty_arrays` & `disable_empty_arrays`. Those two
+/// features are mutually exclusive. If none of them is set, empty arrays are
+/// allowed by default.
+///
+/// # Naming convention for methods:
+/// - `as_***()` means conversion (sharing), but not a copy - TODO reconsider & implement
+/// - `to_***()` means a copy.
+
+/// If `T` is `Copy`, use `Slice` instead of `SliceClone`. See also
+/// `SliceStorageClone` and
 /// `SliceStorage` for reasoning on why they are named so.
 pub trait SliceClone<'a, T: 'a + Clone + PartialEq, const N: usize>
 where
@@ -496,18 +530,20 @@ macro_rules! slice_storage_impl {
 
         // Ownership transfer constructors.
         fn from_shared(slice: &'a [T]) -> Self {
+            // Since N is const, this assert may be optimized away.
             #[cfg(feature = "size_for_array_only")]
-            debug_assert_eq!(N, 0);
+            assert_eq!(N, 0);
             Self::Shared(slice)
         }
         fn from_mutable(slice: &'a mut [T]) -> Self {
+            // Since N is const, this assert may be optimized away.
             #[cfg(feature = "size_for_array_only")]
-            debug_assert_eq!(N, 0);
+            assert_eq!(N, 0);
             Self::Mutable(slice)
         }
         fn from_array(array: [T; N]) -> Self {
             // debug (non-optimized build)-only check is enough, because we
-            // also have a compile-time check by bounds on NARR.
+            // also have a compile-time check by bounds.
             #[cfg(feature = "disable_empty_arrays")]
             debug_assert!(N > 0);
             Self::Array(array)
@@ -515,8 +551,9 @@ macro_rules! slice_storage_impl {
 
         #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
         fn from_vec(vector: Vec<T>) -> Self {
+            // Since N is const, this assert may be optimized away.
             #[cfg(feature = "size_for_array_only")]
-            debug_assert_eq!(N, 0);
+            assert_eq!(N, 0);
             Self::Vec(vector)
         }
 
@@ -661,7 +698,7 @@ macro_rules! slice_storage_default_impl {
     ($copy_or_clone_from_slice: ident, $copy_or_clone_array: ident, $copy_or_clone_default: ident) => {
         fn to_array_based(&self) -> Self {
             // debug (non-optimized build)-only check is enough, because we
-            // also have a compile-time check by bounds on NARR.
+            // also have a compile-time check by bounds.
             #[cfg(feature = "disable_empty_arrays")]
             debug_assert!(N > 0);
             match self {

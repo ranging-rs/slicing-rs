@@ -22,6 +22,10 @@ no_std_vec = []
 # but beware that non-array invariants waste space if `N`>0.
 size_for_array_only = []
 
+# "allow_empty_arrays" is not called "enable_empty_arrays", because it doesn't
+# need to be enabled: it works out of the box. "allow_empty_arrays" doesn't
+# enable anything - it only prevents other dependancies to
+# "disable_allow_empty_arrays".
 allow_empty_arrays = []
 disable_empty_arrays = []
 
