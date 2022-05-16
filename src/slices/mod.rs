@@ -3,8 +3,21 @@ extern crate alloc;
 #[cfg(feature = "no_std_vec")]
 use alloc::vec::Vec;
 
+/// Helper that generates code shared between various Slice traits.
+/// Non-hygienic, of course.
+// Purpose of separation from slice_trait_with_narr_size: When `disable_empty_arrays` feature is enabled, this makes `NARR` not be an array with 0 items (which would fail), but with one item.
 macro_rules! slice_trait {
     ($trait_name:ident) => {
+        #[cfg(not(feature = "disable_empty_arrays"))]
+        slice_trait_with_narr_size!($trait_name, 0);
+        #[cfg(feature = "disable_empty_arrays")]
+        slice_trait_with_narr_size!($trait_name, 1);
+    };
+}
+
+/// Internal helper macro to workaround Rust's limitations on NARR's size parameter and its bounds.
+macro_rules! slice_trait_with_narr_size {
+    ($trait_name:ident, $narr_size:expr) => {
         type ITER<'i>: Iterator<Item = &'i T> = core::slice::Iter<'i, T> where T: 'i, Self: 'i;
 
         /// Like Self, but with size 0. `NARR` means NON_ARRAY. It serves for
@@ -13,7 +26,7 @@ macro_rules! slice_trait {
         /// There's no way, and no need, to correlate `NARR` and `Self` here any
         /// closer (even though those types are related). It's the semantics/
         /// convention that matters.
-        type NARR: $trait_name<'a, T, 0>;
+        type NARR: $trait_name<'a, T, $narr_size>;
 
         fn get(&self, index: usize) -> T;
         /// Set the value. Return true if this value was not present. (Like std::collections::HashSet.)
@@ -167,7 +180,7 @@ macro_rules! slice_trait_default {
 pub const fn check_empty_array_size(array_size: usize) -> usize {
     #[cfg(feature = "disable_empty_arrays")]
     if array_size == 0 {
-        panic!("Empty arrays are not allowed. See disable_empty_arrays.");
+        panic!("Empty arrays are not allowed, due to disable_empty_arrays.");
     };
     0
 }
@@ -176,7 +189,7 @@ pub const fn check_empty_array_size(array_size: usize) -> usize {
 pub trait Slice<'a, T: 'a + Clone + Copy + PartialEq, const N: usize>
 where
     Self: 'a,
-    [(); check_empty_array_size(N)]: Sized,
+    [(); check_empty_array_size(N)]:,
 {
     slice_trait!(Slice);
 }
@@ -191,14 +204,14 @@ where
         storage_type: SliceBackedChoice,
     ) -> S
     where
-        [(); check_empty_array_size(N)]: Sized;
+        [(); check_empty_array_size(N)]:;
     fn collect_to_array<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S
     where
-        [(); check_empty_array_size(N)]: Sized;
+        [(); check_empty_array_size(N)]:;
     #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
     fn collect_to_vec<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S
     where
-        [(); check_empty_array_size(N)]: Sized;
+        [(); check_empty_array_size(N)]:;
 }
 pub trait CollectToClone<'a>
 where
@@ -221,7 +234,7 @@ impl<'a, T: 'a + Clone + Copy + PartialEq, ITER: Iterator<Item = T>> CollectTo<'
         storage_type: SliceBackedChoice,
     ) -> S
     where
-        [(); check_empty_array_size(N)]: Sized,
+        [(); check_empty_array_size(N)]:,
     {
         match storage_type {
             SliceBackedChoice::Array => self.collect_to_array(),
@@ -232,14 +245,14 @@ impl<'a, T: 'a + Clone + Copy + PartialEq, ITER: Iterator<Item = T>> CollectTo<'
     }
     fn collect_to_array<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S
     where
-        [(); check_empty_array_size(N)]: Sized,
+        [(); check_empty_array_size(N)]:,
     {
         S::from_iter_to_array(self)
     }
     #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
     fn collect_to_vec<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S
     where
-        [(); check_empty_array_size(N)]: Sized,
+        [(); check_empty_array_size(N)]:,
     {
         S::from_iter_to_vec(self)
     }
@@ -288,6 +301,11 @@ where
 /// Param `N` indicates array size for SliceStorage::Array. It works together
 /// with crate feature `size_for_array_only`.
 ///
+/// In short: If `size_for_array_only` is enabled and size `N` is non-zero, we
+/// allow SliceStorage::Array` variant only.
+///
+/// In detail:
+///
 /// If `N > 0`, that allows and reserves array storage in all variants of
 ///  `SliceStorage`. Then
 ///
@@ -295,9 +313,9 @@ where
 /// variant only. And we forbid (at runtime) use of any other `SliceStorage`
 /// variants (`SliceStorage::Shared`...) for non-zero `N`.
 ///  
-/// That prevents us from wasting memory (and fragmenting CPU cache). However,
-/// we have to type all non-array variants as having `N = 0`, and hence we
-/// can't assign/pass those non-array variants to an array variant.
+/// That prevents us from wasting memory (and possibly fragmenting CPU caches).
+/// However, we have to type all non-array variants as having `N = 0`, and
+/// hence we can't assign/pass those non-array variants to an array variant.
 ///
 /// - if `size_for_array_only` is disabled, we allow any variants of
 /// `SliceStorage` (as applicable to the choice of `std` or `no_std`). That
@@ -456,7 +474,7 @@ fn fn_to_array<T: Clone, const N: usize>(mut f: impl FnMut() -> T) -> [T; N] {
 macro_rules! slice_storage_impl {
     ($enum_name:ident, $copy_or_clone_value: ident, $copy_or_clone_to_array: ident) => {
         type ITER<'i> = core::slice::Iter<'i, T>
-                        where T: 'i, Self: 'i;
+                                                                        where T: 'i, Self: 'i;
 
         type NARR = $enum_name<'a, T, 0>;
 
@@ -479,24 +497,26 @@ macro_rules! slice_storage_impl {
         // Ownership transfer constructors.
         fn from_shared(slice: &'a [T]) -> Self {
             #[cfg(feature = "size_for_array_only")]
-            assert!(N.is_none());
+            debug_assert_eq!(N, 0);
             Self::Shared(slice)
         }
         fn from_mutable(slice: &'a mut [T]) -> Self {
             #[cfg(feature = "size_for_array_only")]
-            assert!(N.is_none());
+            debug_assert_eq!(N, 0);
             Self::Mutable(slice)
         }
         fn from_array(array: [T; N]) -> Self {
+            // debug (non-optimized build)-only check is enough, because we
+            // also have a compile-time check by bounds on NARR.
             #[cfg(feature = "disable_empty_arrays")]
-            assert!(N > 0);
+            debug_assert!(N > 0);
             Self::Array(array)
         }
 
         #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
         fn from_vec(vector: Vec<T>) -> Self {
             #[cfg(feature = "size_for_array_only")]
-            assert!(N.is_none());
+            debug_assert_eq!(N, 0);
             Self::Vec(vector)
         }
 
@@ -611,7 +631,7 @@ macro_rules! slice_storage_impl {
 impl<'a, T: 'a + Clone + Copy + PartialEq, const N: usize> Slice<'a, T, N>
     for SliceStorage<'a, T, N>
 where
-    [(); check_empty_array_size(N)]: Sized,
+    [(); check_empty_array_size(N)]:,
 {
     slice_storage_impl!(SliceStorage, copy_value, copy_to_array);
 }
@@ -640,8 +660,10 @@ fn clone_array_default<T: Clone + Default, const N: usize>() -> [T; N] {
 macro_rules! slice_storage_default_impl {
     ($copy_or_clone_from_slice: ident, $copy_or_clone_array: ident, $copy_or_clone_default: ident) => {
         fn to_array_based(&self) -> Self {
+            // debug (non-optimized build)-only check is enough, because we
+            // also have a compile-time check by bounds on NARR.
             #[cfg(feature = "disable_empty_arrays")]
-            assert!(N > 0);
+            debug_assert!(N > 0);
             match self {
                 Self::Array(from) => {
                     let to = $copy_or_clone_array(from);
