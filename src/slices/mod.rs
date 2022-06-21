@@ -3,6 +3,204 @@ extern crate alloc;
 #[cfg(feature = "no_std_vec")]
 use alloc::vec::Vec;
 
+struct StructMatched {
+    x: usize,
+    y: usize,
+}
+
+/*macro_rules! struct_matched {
+    () => {
+        StructMatched {x: matched_x, ... }
+    }
+}
+
+fn use_struct_matched_on_left() {
+    let {
+        x, ..
+    } = StructMatched {
+        x: 1,
+        y: 2
+    };
+
+    struct_matched!() = StructMatched {
+        x: 1,
+        y: 2
+    };
+}*/
+
+macro_rules! struct_matched_wholy {
+    () => {
+        StructMatched {
+            x: matched_x,
+            #[cfg(not(non_existing_feature))]
+            y: matched_y,
+        }
+    };
+}
+
+fn use_struct_matched_wholy_on_left() {
+    {
+        let StructMatched {
+            x: matched_x,
+            y: matched_y,
+        } = StructMatched { x: 1, y: 2 };
+    }
+    {
+        let struct_matched_wholy!() = StructMatched { x: 1, y: 2 };
+    }
+}
+
+macro_rules! struct_matched_partially {
+    () => {
+        StructMatched { x: matched_x, .. }
+    };
+}
+
+fn use_struct_matched_partially_on_left() {
+    {
+        let StructMatched { x: matched_x, .. } = StructMatched { x: 1, y: 2 };
+    }
+    {
+        let struct_matched_partially!() = StructMatched { x: 1, y: 2 };
+    }
+}
+
+macro_rules! define_custom_macro {
+    () => {
+        macro_rules! custom_macro {
+            () => {
+                println!("Hello.");
+            };
+        }
+    };
+}
+define_custom_macro!();
+
+macro_rules! define_custom_macro_with_capture {
+    () => {
+        macro_rules! custom_macro_with_capture {
+            ($$e:expr) => {
+                println!("expr: {}", $$e);
+            };
+        }
+    };
+}
+define_custom_macro_with_capture!();
+fn use_defined_custom_macro_with_capture() {
+    custom_macro_with_capture!("hi");
+}
+
+macro_rules! test_generate_simple_match {
+    () => {
+        match true {
+            true => true,
+            false => panic!(),
+        }
+    };
+}
+
+// Following https://veykril.github.io/tlborm/decl-macros/patterns/tt-muncher.html
+// We perform minimum validation. We transcribe, and leave as much validation to Rust as possible. This makes compilation faster. match expressions (themselves) are simple anyway.
+// If you want exotic support or error handling, become a maintainer.
+
+macro_rules! match_with_std_or_heap_patterns {
+    // richer coverage/more match_with_std_or_heap_patterns first
+    (
+         #[with_std] $($tail:tt)*
+    ) => {
+        #[cfg(not(feature = "no_std"))]
+        match_with_std_or_heap_patterns!( $($tail)* )
+    };
+    (
+        #[with_heap] $($tail:tt)*
+   ) => {
+       #[cfg(any(not(feature = "no_std"), feature = "no_std_heap"))]
+       match_with_std_or_heap_patterns!( $($tail)* )
+   };
+   (
+        $first:tt $($tail:tt)*
+   ) => {
+        $first match_with_std_or_heap_patterns!( $($tail)* )
+   };
+   () => {}
+}
+macro_rules! match_with_std_or_heap {
+    ($value:expr , {
+        $($all_patterns_tokens:tt)*
+    }
+    ) => {
+        match $value {
+            match_with_std_or_heap_patterns!( $($all_patterns_tokens)* )
+        }
+    }
+}
+fn test_match_with_std_or_heap() {
+    match_with_std_or_heap! {
+        true, {
+            true => 1,
+            false => 0
+        }
+    };
+}
+
+macro_rules! simple_generate_match {
+    ($value:expr
+    ) => {
+        match $value {
+            true => 1,
+            false => 0,
+        }
+    };
+}
+fn test_simple_generate_match() {
+    simple_generate_match!(true);
+}
+
+// -----
+macro_rules! a_or_b {
+    (a|b) => {
+        println!("a|b");
+    };
+}
+
+// No | for alternatives in macros:
+fn use_a_or_b() {
+    a_or_b!(a | b);
+    // a_or_b!(a); // <--- fails to compile
+}
+
+/// Non-hygienic, of course.
+/// `cfg_condition_part`-s are comma-separated parts inside output `#[cfg(...)]`.
+macro_rules! define_match_with_cfg {
+    ($new_match_like_macro_name:ident,
+         $(
+             $new_attribute_name:ident => ( $($cfg_condition_part:expr),* )
+        ),*
+    ) => {
+         // TODO: cannot generate $ character in $match_pattern:pat => $match_expression:expr
+         // So the following has to be generated from proc macro:
+         macro_rules! $new_match_like_macro_name {
+            (/*$value:expr*/ {
+            $(
+                #[$new_attribute_name]
+                // $match_pattern:pat => $match_expression:expr
+            )*
+            }
+            ) => {
+                match $value {
+                 //#[cfg($($cfg_condition_part),*)]
+                }
+                }
+        }
+    }
+}
+
+define_match_with_cfg!(match_with_no_cfg,);
+
+define_match_with_cfg!(match_with,
+    heap => (any(not(cfg="no_std"), cfg="no_std_heap"))
+);
+
 /// Conditionally compile - only if heap is supported.
 /// Convention: In places where we can't use this macro, such as conditionally
 /// compiling branches of a `match` statement, we use

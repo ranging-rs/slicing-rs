@@ -14,6 +14,7 @@
 #![feature(const_option)]
 #![feature(const_option_ext)]
 #![feature(array_from_fn)]
+#![feature(macro_metavar_expr)]
 
 pub mod abstra;
 pub mod index;
