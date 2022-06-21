@@ -1,0 +1,6 @@
+# See https://rust-lang.github.io/rustup/overrides.html
+# and https://rust-lang.github.io/rustup/concepts/profiles.html.
+[toolchain]
+channel = "nightly"
+components = [ "rustfmt", "clippy" ]
+profile = "minimal"
