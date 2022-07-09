@@ -1,5 +1,6 @@
 use crate::abstra::NewLike;
 use crate::slices::{ByteSlice, SliceBackedChoice, SliceDefault};
+use crate::{match_cfg, with_heap};
 #[cfg(feature = "no_std_vec")]
 extern crate alloc;
 #[cfg(feature = "no_std_vec")]
@@ -104,39 +105,42 @@ where
         unimplemented!("Never")
     }
 
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-    fn from_vec(_vector: Vec<bool>) -> Self {
-        unimplemented!("Never")
-    }
+    with_heap! {
+        fn from_vec(_vector: Vec<bool>) -> Self {
+            unimplemented!("Never")
+        }
 
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-    fn from_vec_ref(vector: &'a mut Vec<bool>) -> Self {
-        unimplemented!("Never")
+        fn from_vec_ref(vector: &'a mut Vec<bool>) -> Self {
+            unimplemented!("Never")
+        }
     }
 
     fn from_value_to_array(value_ref: &bool) -> Self {
         unimplemented!("Maybe one day")
     }
 
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-    fn from_value_to_vec(value: &bool, size: usize) -> Self {
-        unimplemented!("Maybe one day")
+    with_heap! {
+        fn from_value_to_vec(value: &bool, size: usize) -> Self {
+            unimplemented!("Maybe one day")
+        }
     }
 
     fn from_iter_to_array(iter: impl Iterator<Item = bool>) -> Self {
         unimplemented!("Maybe one day")
     }
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-    fn from_iter_to_vec(iter: impl Iterator<Item = bool>) -> Self {
-        unimplemented!("Maybe one day")
+    with_heap! {
+        fn from_iter_to_vec(iter: impl Iterator<Item = bool>) -> Self {
+            unimplemented!("Maybe one day")
+        }
     }
 
     fn from_fn_to_array(f: impl FnMut() -> bool) -> Self {
         unimplemented!("Maybe one day")
     }
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-    fn from_fn_to_vec(f: impl FnMut() -> bool, size: usize) -> Self {
-        unimplemented!("Maybe one day")
+    with_heap! {
+        fn from_fn_to_vec(f: impl FnMut() -> bool, size: usize) -> Self {
+            unimplemented!("Maybe one day")
+        }
     }
 
     fn from_default(size: usize, storage_type: SliceBackedChoice) -> Self {
@@ -149,10 +153,11 @@ where
             byte_slice: ByteSlice::from_default_to_array(),
         }
     }
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-    fn from_default_to_vec(size: usize) -> Self {
-        Self {
-            byte_slice: ByteSlice::from_default_to_vec(num_bits_to_bytes(size)),
+    with_heap! {
+        fn from_default_to_vec(size: usize) -> Self {
+            Self {
+                byte_slice: ByteSlice::from_default_to_vec(num_bits_to_bytes(size)),
+            }
         }
     }
 
@@ -160,15 +165,15 @@ where
         unimplemented!("Never")
     }
 
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-    fn to_vec_based(self) -> Self {
-        unimplemented!("Never")
-    }
+    with_heap! {
+        fn to_vec_based(self) -> Self {
+            unimplemented!("Never")
+        }
 
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-    fn to_non_array_vec_based(&self) -> Self::NARR {
-        ByteSliceBoolStorage {
-            byte_slice: self.byte_slice.to_non_array_vec_based(),
+        fn to_non_array_vec_based(&self) -> Self::NARR {
+            ByteSliceBoolStorage {
+                byte_slice: self.byte_slice.to_non_array_vec_based(),
+            }
         }
     }
 
@@ -179,9 +184,10 @@ where
     fn mutable_slice<'s>(&'s mut self) -> &'s mut [bool] {
         unimplemented!("Never")
     }
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
-    fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<bool> {
-        unimplemented!("Never")
+    with_heap! {
+        fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<bool> {
+            unimplemented!("Never")
+        }
     }
 }
 

@@ -3,215 +3,113 @@ extern crate alloc;
 #[cfg(feature = "no_std_vec")]
 use alloc::vec::Vec;
 
-struct StructMatched {
-    x: usize,
-    y: usize,
-}
-
-/*macro_rules! struct_matched {
-    () => {
-        StructMatched {x: matched_x, ... }
-    }
-}
-
-fn use_struct_matched_on_left() {
-    let {
-        x, ..
-    } = StructMatched {
-        x: 1,
-        y: 2
-    };
-
-    struct_matched!() = StructMatched {
-        x: 1,
-        y: 2
-    };
-}*/
-
-macro_rules! struct_matched_wholy {
-    () => {
-        StructMatched {
-            x: matched_x,
-            #[cfg(not(non_existing_feature))]
-            y: matched_y,
-        }
-    };
-}
-
-fn use_struct_matched_wholy_on_left() {
-    {
-        let StructMatched {
-            x: matched_x,
-            y: matched_y,
-        } = StructMatched { x: 1, y: 2 };
-    }
-    {
-        let struct_matched_wholy!() = StructMatched { x: 1, y: 2 };
-    }
-}
-
-macro_rules! struct_matched_partially {
-    () => {
-        StructMatched { x: matched_x, .. }
-    };
-}
-
-fn use_struct_matched_partially_on_left() {
-    {
-        let StructMatched { x: matched_x, .. } = StructMatched { x: 1, y: 2 };
-    }
-    {
-        let struct_matched_partially!() = StructMatched { x: 1, y: 2 };
-    }
-}
-
-macro_rules! define_custom_macro {
-    () => {
-        macro_rules! custom_macro {
-            () => {
-                println!("Hello.");
-            };
-        }
-    };
-}
-define_custom_macro!();
-
-macro_rules! define_custom_macro_with_capture {
-    () => {
-        macro_rules! custom_macro_with_capture {
-            ($$e:expr) => {
-                println!("expr: {}", $$e);
-            };
-        }
-    };
-}
-define_custom_macro_with_capture!();
-fn use_defined_custom_macro_with_capture() {
-    custom_macro_with_capture!("hi");
-}
-
-macro_rules! test_generate_simple_match {
-    () => {
-        match true {
-            true => true,
-            false => panic!(),
-        }
-    };
-}
-
-// Following https://veykril.github.io/tlborm/decl-macros/patterns/tt-muncher.html
-// We perform minimum validation. We transcribe, and leave as much validation to Rust as possible. This makes compilation faster. match expressions (themselves) are simple anyway.
-// If you want exotic support or error handling, become a maintainer.
-
-macro_rules! match_with_std_or_heap_patterns {
-    // richer coverage/more match_with_std_or_heap_patterns first
+/// This requires commas between any matching branches, even if the previous
+/// match expression (result right of `=>`) is a block `{...}`. (It can't accept
+/// a trailing comma.)
+#[macro_export]
+macro_rules! match_cfg {
     (
-         #[with_std] $($tail:tt)*
-    ) => {
-        #[cfg(not(feature = "no_std"))]
-        match_with_std_or_heap_patterns!( $($tail)* )
-    };
-    (
-        #[with_heap] $($tail:tt)*
-   ) => {
-       #[cfg(any(not(feature = "no_std"), feature = "no_std_heap"))]
-       match_with_std_or_heap_patterns!( $($tail)* )
-   };
-   (
-        $first:tt $($tail:tt)*
-   ) => {
-        $first match_with_std_or_heap_patterns!( $($tail)* )
-   };
-   () => {}
-}
-macro_rules! match_with_std_or_heap {
-    ($value:expr , {
-        $($all_patterns_tokens:tt)*
-    }
-    ) => {
-        match $value {
-            match_with_std_or_heap_patterns!( $($all_patterns_tokens)* )
-        }
-    }
-}
-fn test_match_with_std_or_heap() {
-    match_with_std_or_heap! {
-        true, {
-            true => 1,
-            false => 0
-        }
-    };
-}
+        $value_to_match:expr,
+        $(
+            $(#[ $meta_or_docs:meta ])*
+            // There must be no #[meta], neither any /// docs, between the
+            // following ones and the `match` pattern.
+            $(~[ heap $heap_delimiter:tt ])?
+            $(~[ std $std_delimiter:tt ])?
 
-macro_rules! simple_generate_match {
-    ($value:expr
+            $match_pattern:pat => $match_expression:expr
+        ),+
     ) => {
-        match $value {
-            true => 1,
-            false => 0,
-        }
-    };
-}
-fn test_simple_generate_match() {
-    simple_generate_match!(true);
-}
-
-// -----
-macro_rules! a_or_b {
-    (a|b) => {
-        println!("a|b");
-    };
-}
-
-// No | for alternatives in macros:
-fn use_a_or_b() {
-    a_or_b!(a | b);
-    // a_or_b!(a); // <--- fails to compile
-}
-
-/// Non-hygienic, of course.
-/// `cfg_condition_part`-s are comma-separated parts inside output `#[cfg(...)]`.
-macro_rules! define_match_with_cfg {
-    ($new_match_like_macro_name:ident,
-         $(
-             $new_attribute_name:ident => ( $($cfg_condition_part:expr),* )
-        ),*
-    ) => {
-         // TODO: cannot generate $ character in $match_pattern:pat => $match_expression:expr
-         // So the following has to be generated from proc macro:
-         macro_rules! $new_match_like_macro_name {
-            (/*$value:expr*/ {
+        match $value_to_match {
             $(
-                #[$new_attribute_name]
-                // $match_pattern:pat => $match_expression:expr
-            )*
-            }
-            ) => {
-                match $value {
-                 //#[cfg($($cfg_condition_part),*)]
-                }
-                }
+                $(
+                    #[$meta_or_docs]
+                )*
+                $(
+                    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                    ${ignore(heap_delimiter)}
+                )?
+                $(
+                    #[cfg(not(feature = "no_std"))]
+                    ${ignore(std_delimiter)}
+                )?
+
+                $match_pattern =>  $match_expression
+            ),+
         }
     }
 }
 
-define_match_with_cfg!(match_with_no_cfg,);
+#[macro_export]
+macro_rules! enum_cfg {
+    (
+        (
+            $(
+                $header_part:tt
+            )+
+        )$(,)?
+        $(
+            $(#[ $meta_or_docs:meta ])*
+            // There must be no #[meta], neither any /// docs, between the
+            // following ones and the enum variant pattern.
+            $(~[ heap $heap_delimiter:tt ])?
+            $(~[ std $std_delimiter:tt ])?
 
-define_match_with_cfg!(match_with,
-    heap => (any(not(cfg="no_std"), cfg="no_std_heap"))
-);
+            $variant:ident
+            $(
+                (
+                    $( $tuple_fields: tt )+
+                )
+            )?
+            $(
+                {
+                    $( $named_fields: tt )+
+                }
+            )?
+        ),+
 
-/// Conditionally compile - only if heap is supported.
-/// Convention: In places where we can't use this macro, such as conditionally
-/// compiling branches of a `match` statement, we use
+    ) => {
+        $( $header_part )+
+        {
+            $(
+                $(
+                    #[$meta_or_docs]
+                )*
+                $(
+                    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                    ${ignore(heap_delimiter)}
+                )?
+                $(
+                    #[cfg(not(feature = "no_std"))]
+                    ${ignore(std_delimiter)}
+                )?
+
+                $variant
+                $(
+                    (
+                        $( $tuple_fields )+
+                    )
+                )?
+                $(
+                    {
+                        $( $named_fields )+
+                    }
+                )?
+            ),+
+        }
+    }
+}
+
+/// Conditionally compile - only if heap is supported. Convention: In places
+/// where we can't use this macro, such as conditionally compiling branches of a
+/// `match` statement, we use
 /// ```
 /// #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+/// {} // a statement here
 /// ```
-/// including the comment
-/// ```
-///  ///with_heap
-/// ```
-/// so that we can search for both usages easily.
+/// including the comment `//with_heap`, so that we can search for both usages
+/// easily.
+#[macro_export]
 macro_rules! with_heap {
     ($($item:tt)*) => {
         #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
@@ -296,11 +194,12 @@ macro_rules! slice_trait_with_narr_size {
         where
             Self: Sized,
         {
-            match storage_type {
+            match_cfg! { storage_type,
+                ~[heap~]
                 SliceBackedChoice::Array => Self::from_value_to_array(value_ref),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
-                SliceBackedChoice::Vec => Self::from_value_to_vec(value_ref, size),
-                _ => unimplemented!("Never"),
+                ~[std~]
+                SliceBackedChoice::Array | SliceBackedChoice::Array=> Self::from_value_to_array(value_ref),
+                _ => unimplemented!("Never")
             }
         }
         fn from_value_to_array(value: &'a T) -> Self;
@@ -316,11 +215,11 @@ macro_rules! slice_trait_with_narr_size {
         where
             Self: Sized,
         {
-            match storage_type {
+            match_cfg! {storage_type,
                 SliceBackedChoice::Array => Self::from_iter_to_array(iter),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+                ~[heap~]
                 SliceBackedChoice::Vec => Self::from_iter_to_vec(iter),
-                _ => unimplemented!("Never"),
+                _ => unimplemented!("Never")
             }
         }
         fn from_iter_to_array(iter: impl Iterator<Item = T>) -> Self;
@@ -332,11 +231,11 @@ macro_rules! slice_trait_with_narr_size {
         where
             Self: Sized,
         {
-            match storage_type {
+            match_cfg! {storage_type,
                 SliceBackedChoice::Array => Self::from_fn_to_array(f),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+                ~[heap~]
                 SliceBackedChoice::Vec => Self::from_fn_to_vec(f, size),
-                _ => unimplemented!("Never"),
+                _ => unimplemented!("Never")
             }
         }
         fn from_fn_to_array(f: impl FnMut() -> T) -> Self;
@@ -383,11 +282,11 @@ macro_rules! slice_trait_default {
         where
             Self: Sized,
         {
-            match storage_type {
+            match_cfg! {storage_type,
                 SliceBackedChoice::Array => Self::from_default_to_array(),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+                ~[heap~]
                 SliceBackedChoice::Vec => Self::from_default_to_vec(size),
-                _ => unimplemented!("Never"),
+                _ => unimplemented!("Never")
             }
         }
         fn from_default_to_array() -> Self;
@@ -466,11 +365,11 @@ impl<'a, T: 'a + Clone + Copy + PartialEq, ITER: Iterator<Item = T>> CollectTo<'
     where
         [(); check_empty_array_size(N)]:,
     {
-        match storage_type {
+        match_cfg! {storage_type,
             SliceBackedChoice::Array => self.collect_to_array(),
-            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+            ~[heap~]
             SliceBackedChoice::Vec => self.collect_to_vec(),
-            _ => unimplemented!("Never"),
+            _ => unimplemented!("Never")
         }
     }
     fn collect_to_array<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S
@@ -494,11 +393,11 @@ impl<'a, T: 'a + Clone + PartialEq, ITER: Iterator<Item = T>> CollectToClone<'a>
         self,
         storage_type: SliceBackedChoice,
     ) -> S {
-        match storage_type {
+        match_cfg! {storage_type,
             SliceBackedChoice::Array => self.collect_to_array_clone(),
-            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+            ~[heap~]
             SliceBackedChoice::Vec => self.collect_to_vec_clone(),
-            _ => unimplemented!("Never"),
+            _ => unimplemented!("Never")
         }
     }
     fn collect_to_array_clone<S: SliceClone<'a, Self::Item, N>, const N: usize>(self) -> S {
@@ -643,27 +542,30 @@ where
     slice_trait_default!();
 }
 
-#[derive(Debug, PartialEq)]
-pub enum SliceBackedChoice {
+enum_cfg! {
+    (
+        #[derive(Debug, PartialEq)]
+        pub enum SliceBackedChoice
+    ),
     Shared,
     Mutable,
     Array,
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+    ~[heap~]
     Vec,
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
-    VecRef,
+    ~[heap~]
+    VecRef
 }
 
 impl SliceBackedChoice {
     pub fn is_owned(&self) -> bool {
         use SliceBackedChoice::*;
-        match self {
+        match_cfg! { self,
             Shared | Mutable => false,
             Array => true,
-            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+            ~[heap~]
             VecRef => false,
-            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
-            Vec => true,
+            ~[heap~]
+            Vec => true
         }
     }
 }
@@ -678,8 +580,11 @@ where
 
 macro_rules! slice_storage_enum {
     ($enum_name:ident, $($item_bounds:tt)+) => {
-        #[derive(Debug)]
-        pub enum $enum_name<'a, T: 'a + $($item_bounds)+, const N: usize> {
+        enum_cfg! {
+            (
+                #[derive(Debug)]
+                pub enum $enum_name<'a, T: 'a + $($item_bounds)+, const N: usize>
+            ),
             Shared(&'a [T]),
             Mutable(&'a mut [T]),
 
@@ -687,13 +592,25 @@ macro_rules! slice_storage_enum {
             Array([T; N]),
 
             /// Owned vector.
-            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+            ~[heap~]
             Vec(Vec<T>),
 
-            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
-            VecRef(&'a mut Vec<T>),
+            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+            VecRef(&'a mut Vec<T>)
         }
     }
+}
+
+enum_cfg! {
+    (
+        #[derive(Debug)]
+        enum Enumy
+    ),
+    Shared,
+    ~[heap~]
+    Vec,
+    //#[Default]
+    Any
 }
 
 /// Abstracted slice storage/access.
@@ -853,28 +770,28 @@ macro_rules! slice_storage_impl {
 
         // Accessors
         fn shared_slice(&self) -> &[T] {
-            match &self {
+            match_cfg! {&self,
                 Self::Shared(slice) => slice,
                 Self::Mutable(slice) => slice,
                 Self::Array(array) => array,
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+                ~[heap~]
                 Self::Vec(vec) => vec,
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
-                Self::VecRef(vec_ref) => *vec_ref,
+                ~[heap~]
+                Self::VecRef(vec_ref) => *vec_ref
             }
         }
 
         fn mutable_slice<'s>(&'s mut self) -> &'s mut [T] {
-            match self {
+            match_cfg! {self,
                 Self::Shared(_) => {
                     unimplemented!("Can't get a mutable slice from a shared slice.")
-                }
+                },
                 Self::Mutable(slice) => slice,
                 Self::Array(array) => array,
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+                ~[heap~]
                 Self::Vec(vec) => vec,
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
-                Self::VecRef(vec_ref) => *vec_ref,
+                ~[heap~]
+                Self::VecRef(vec_ref) => *vec_ref
             }
         }
 
@@ -928,28 +845,28 @@ macro_rules! slice_storage_default_impl {
             // also have a compile-time check by bounds.
             #[cfg(feature = "disable_empty_arrays")]
             debug_assert!(N > 0);
-            match self {
+            match_cfg! {self,
                 Self::Array(from) => {
                     let to = $copy_or_clone_array(from);
                     Self::Array(to)
-                }
+                },
                 Self::Shared(slice) => {
                     let mut to = $copy_or_clone_default();
                     to.$copy_or_clone_from_slice(*slice);
                     Self::Array(to)
-                }
+                },
                 Self::Mutable(slice) => {
                     let mut to = $copy_or_clone_default();
                     to.$copy_or_clone_from_slice(*slice);
                     Self::Array(to)
-                }
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+                },
+                ~[heap~]
                 Self::Vec(vec) => {
                     let mut to = $copy_or_clone_default();
                     to.$copy_or_clone_from_slice(vec);
                     Self::Array(to)
-                }
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+                },
+                ~[heap~]
                 Self::VecRef(vec_ref) => {
                     let mut to = $copy_or_clone_default();
                     to.$copy_or_clone_from_slice(*vec_ref);
@@ -990,19 +907,19 @@ macro_rules! slice_storage_impl_clone {
     () => {
         /// Implemented for Array-backed and Vec-backed SliceStorage only. For Vec (mutable) reference-backed SliceStorage this creates a new, owned Vec-based instance.
         fn clone(&self) -> Self {
-            match self {
+            match_cfg! {self,
                 Self::Shared(_) => {
                     unimplemented!("Don't clone a shared slice-backed SliceStorage. Instead, pass a shared reference to it.")
-                }
+                },
                 Self::Mutable(_) => {
                     unimplemented!("Can't clone a mutable slice.")
-                }
+                },
                 Self::Array(array) => Self::Array(array.clone()),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+                ~[heap~]
                 Self::Vec(vec) => Self::Vec(vec.clone()),
                 // Can't clone a mutable reference. Clone the vector itself.
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
-                Self::VecRef(vec_ref) => Self::Vec((*vec_ref).clone()),
+                ~[heap~]
+                Self::VecRef(vec_ref) => Self::Vec((*vec_ref).clone())
             }
         }
     }
@@ -1029,15 +946,15 @@ macro_rules! slice_storage_newlike_impl {
     ($copy_or_clone_default: ident) => {
         /// Implemented for Shared-backed, Array-backed and Vec-backed (but not VecRef-backed) variants only.
         fn new_like(&self) -> Self {
-            match self {
+            match_cfg! {self,
                 Self::Shared(slice) => Self::Shared(slice),
                 Self::Mutable(_) => {
                     unimplemented!("Can't clone a mutable slice.")
-                }
+                },
                 Self::Array(_) => Self::Array($copy_or_clone_default()),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+                ~[heap~]
                 Self::Vec(vec) => Self::Vec(Vec::with_capacity(vec.len())),
-                #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+                ~[heap~]
                 Self::VecRef(_) => {
                     unimplemented!("Can't clone a mutable Vec reference.")
                 }

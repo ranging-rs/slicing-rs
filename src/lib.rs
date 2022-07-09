@@ -1,10 +1,11 @@
 // @TODO auto-include RustDoc from ../README.md.
 
 // @TODO remove & cleanup later
-#![allow(unused_variables)]
+#![allow(unused)]
 //
 #![cfg_attr(feature = "no_std", no_std)]
 //
+#![feature(trace_macros)]
 #![allow(incomplete_features)]
 #![feature(generic_associated_types)]
 #![feature(associated_type_bounds)]
@@ -13,8 +14,7 @@
 #![feature(generic_const_exprs)]
 #![feature(const_option)]
 #![feature(const_option_ext)]
-#![feature(array_from_fn)]
-#![feature(macro_metavar_expr)]
+#![feature(macro_metavar_expr)] // for https://veykril.github.io/tlborm/decl-macros/macros-methodical.html#metavariable-expressions
 
 pub mod abstra;
 pub mod index;

@@ -1,4 +1,5 @@
 # Based on https://droogmic.github.io/microrust/getting-started/01.00.BUILD.html
 # Automatically select this target when cargo building this project
 [build]
-target = "thumbv7m-none-eabi"
+# @TODO refer to the other project
+target = "aarch64-unknown-none-softfloat"
