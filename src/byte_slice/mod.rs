@@ -1,4 +1,4 @@
-use crate::abstra::NewLike;
+use crate::abstra::NewEmptyLike;
 use crate::slices::{ByteSlice, SliceBackedChoice, SliceDefault};
 use crate::with_heap;
 #[cfg(feature = "no_std_vec")]
@@ -182,6 +182,16 @@ where
         }
     }
 
+    with_heap! {
+        fn from_non_array_vec_based(from: &Self::NARR,
+            as_choice: &SliceBackedChoice
+        ) -> Self {
+            Self {
+                byte_slice: ByteSlice::<{ num_bits_to_bytes(N) }>::from_non_array_vec_based(&from.byte_slice, as_choice)
+            }
+        }
+    }
+
     // Accessors
     fn shared_slice<'s>(&'s self) -> &'s [bool] {
         unimplemented!("Never")
@@ -196,14 +206,14 @@ where
     }
 }
 
-impl<'a, const N: usize> NewLike for ByteSliceBoolStorage<'a, N>
+impl<'a, const N: usize> NewEmptyLike for ByteSliceBoolStorage<'a, N>
 where
     Self: 'a,
     [(); num_bits_to_bytes(N)]:,
 {
-    fn new_like(&self) -> Self {
+    fn new_empty_like(&self) -> Self {
         Self {
-            byte_slice: self.byte_slice.new_like(),
+            byte_slice: self.byte_slice.new_empty_like(),
         }
     }
 }

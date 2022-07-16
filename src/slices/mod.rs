@@ -3,6 +3,8 @@ extern crate alloc;
 #[cfg(feature = "no_std_vec")]
 use alloc::vec::Vec;
 
+use core::array;
+
 /// This requires commas between any matching branches, even if the previous
 /// match expression (result right of `=>`) is a block `{...}`. (It can't accept
 /// a trailing comma.)
@@ -141,10 +143,11 @@ macro_rules! slice_trait_with_narr_size {
 
         /// Like Self, but with size 0. `NARR` means NON_ARRAY. It serves for
         /// conversion functions that return or accept the same Slice
-        /// implementation type as `Self` but with size 0.
-        /// There's no way, and no need, to correlate `NARR` and `Self` here any
-        /// closer (even though those types are related). It's the semantics/
-        /// convention that matters.
+        /// implementation type as `Self` but with size 0. There's no way, and
+        /// no need, to correlate `NARR` and `Self` here any closer (even though
+        /// those types are related). It's the semantics/ convention that
+        /// matters. (The actual implementation type will define `NARR` as
+        /// itself but with size 0.)
         type NARR: $trait_name<'a, T, $narr_size>;
 
         fn get(&self, index: usize) -> T;
@@ -255,6 +258,14 @@ macro_rules! slice_trait_with_narr_size {
         with_heap! {
             // Copy constructor.
             fn to_non_array_vec_based(&self) -> Self::NARR;
+        }
+
+        with_heap! {
+            // Copy constructor. Not an "as_..." or transformation constructor,
+            // because `Self` is non-zero-sized. Otherwise we'd be wasting
+            // memory occupied by `Self`.
+            fn from_non_array_vec_based(from: &Self::NARR,
+                as_choice: &SliceBackedChoice) -> Self;
         }
 
         // Accessors
@@ -719,8 +730,11 @@ macro_rules! slice_storage_impl {
             /// Return `self` if `Vec`-based, otherwise a new `Vec`-based instance populated from `self`.
             fn to_vec_based(self) -> Self {
                 match self {
+                    // @TODO Vec::with_capacity <- slice.len: --\\
                     Self::Shared(slice) => Self::Vec(slice.iter().cloned().collect::<Vec<_>>()),
+                    // @TODO Vec::with_capacity <- slice.len: --\\
                     Self::Mutable(mutable) => Self::Vec(mutable.iter().cloned().collect::<Vec<_>>()),
+                    // @TODO Vec::with_capacity --\\
                     Self::Array(arr) => Self::Vec(arr.iter().cloned().collect::<Vec<_>>()),
                     Self::Vec(_) => self,
                     Self::VecRef(_) => self,
@@ -729,6 +743,7 @@ macro_rules! slice_storage_impl {
         }
         with_heap! {
             fn to_non_array_vec_based(&self) -> Self::NARR {
+                // @TODO with_capacity
                 let v: Vec<T>;
                 if let Self::Mutable(mutable_slice) = self {
                     v = Vec::from_iter(mutable_slice.iter().cloned());
@@ -743,6 +758,29 @@ macro_rules! slice_storage_impl {
                     v = Vec::from_iter(slice.iter().cloned());
                 }
                 Self::NARR::Vec(v)
+            }
+        }
+
+        with_heap! {
+            fn from_non_array_vec_based(from: &Self::NARR,
+                as_choice: &SliceBackedChoice
+            ) -> Self {
+                use SliceBackedChoice::*;
+                let from_vec;
+                match from {
+                    Self::NARR::Vec(vec) => from_vec = vec,
+                    _ => unreachable!("NARR must always be Vec-based!")
+                }
+                match as_choice {
+                    Shared | Mutable => unimplemented!("Never"),
+                    Array => {
+                        Self::Array(array::from_fn(|i| from_vec[i].clone()))
+                    },
+                    Vec => {
+                        Self::from_vec(from_vec.clone())
+                    },
+                    VecRef => unimplemented!("Never"),
+                }
             }
         }
 
@@ -823,7 +861,7 @@ macro_rules! slice_storage_default_impl {
             // also have a compile-time check by bounds.
             #[cfg(feature = "disable_empty_arrays")]
             debug_assert!(N > 0);
-            
+
             match_cfg! {self,
                 Self::Array(from) => {
                     let to = $copy_or_clone_array(from);
@@ -924,7 +962,7 @@ impl<'a, T: 'a + Clone + PartialEq + Default, const N: usize> Clone
 macro_rules! slice_storage_newlike_impl {
     ($copy_or_clone_default: ident) => {
         /// Implemented for Shared-backed, Array-backed and Vec-backed (but not VecRef-backed) variants only.
-        fn new_like(&self) -> Self {
+        fn new_empty_like(&self) -> Self {
             match_cfg! {self,
                 Self::Shared(slice) => Self::Shared(slice),
                 Self::Mutable(_) => {
@@ -942,12 +980,12 @@ macro_rules! slice_storage_newlike_impl {
     };
 }
 
-impl<'s, T: 's + Clone + Copy + Default, const N: usize> crate::abstra::NewLike
+impl<'s, T: 's + Clone + Copy + Default, const N: usize> crate::abstra::NewEmptyLike
     for SliceStorageDefault<'s, T, N>
 {
     slice_storage_newlike_impl!(copy_array_default);
 }
-impl<'s, T: 's + Clone + Default, const N: usize> crate::abstra::NewLike
+impl<'s, T: 's + Clone + Default, const N: usize> crate::abstra::NewEmptyLike
     for SliceStorageDefaultClone<'s, T, N>
 {
     slice_storage_newlike_impl!(clone_array_default);
