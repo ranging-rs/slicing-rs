@@ -100,9 +100,11 @@ macro_rules! enum_cfg {
     }
 }
 
-/// Conditionally compile - only if heap is supported. Convention: In places
-/// where we can't use this macro, such as conditionally compiling branches of a
-/// `match` statement, we use
+/// Conditionally compile - only if heap is supported. Do not group statements!
+/// Instead,either use a separate invocation per each statement/definition -
+/// like `fn`, or put a sequence of statements inside an inner block `{...`} In
+/// places where we can't use this macro, such as conditionally compiling
+/// branches of a `match` statement, we use
 /// ```
 /// #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
 /// {} // a statement here
@@ -111,7 +113,9 @@ macro_rules! enum_cfg {
 /// easily.
 #[macro_export]
 macro_rules! with_heap {
-    ($($item:tt)*) => {
+    (
+        $($item:tt)*
+    ) => {
         #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
         $($item)*
     }
@@ -352,7 +356,7 @@ where
     ) -> S;
     fn collect_to_array_clone<S: SliceClone<'a, Self::Item, N>, const N: usize>(self) -> S;
     with_heap! {
-    fn collect_to_vec_clone<S: SliceClone<'a, Self::Item, N>, const N: usize>(self) -> S;
+        fn collect_to_vec_clone<S: SliceClone<'a, Self::Item, N>, const N: usize>(self) -> S;
     }
 }
 
@@ -379,12 +383,12 @@ impl<'a, T: 'a + Clone + Copy + PartialEq, ITER: Iterator<Item = T>> CollectTo<'
         S::from_iter_to_array(self)
     }
     with_heap! {
-    fn collect_to_vec<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S
-    where
-        [(); check_empty_array_size(N)]:,
-    {
-        S::from_iter_to_vec(self)
-    }
+        fn collect_to_vec<S: Slice<'a, Self::Item, N>, const N: usize>(self) -> S
+        where
+            [(); check_empty_array_size(N)]:,
+        {
+            S::from_iter_to_vec(self)
+        }
     }
 }
 impl<'a, T: 'a + Clone + PartialEq, ITER: Iterator<Item = T>> CollectToClone<'a> for ITER {
@@ -404,9 +408,9 @@ impl<'a, T: 'a + Clone + PartialEq, ITER: Iterator<Item = T>> CollectToClone<'a>
         S::from_iter_to_array(self)
     }
     with_heap! {
-    fn collect_to_vec_clone<S: SliceClone<'a, Self::Item, N>, const N: usize>(self) -> S {
-        S::from_iter_to_vec(self)
-    }
+        fn collect_to_vec_clone<S: SliceClone<'a, Self::Item, N>, const N: usize>(self) -> S {
+            S::from_iter_to_vec(self)
+        }
     }
 }
 
@@ -595,22 +599,10 @@ macro_rules! slice_storage_enum {
             ~[heap~]
             Vec(Vec<T>),
 
-            #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+            ~[heap~]
             VecRef(&'a mut Vec<T>)
         }
     }
-}
-
-enum_cfg! {
-    (
-        #[derive(Debug)]
-        enum Enumy
-    ),
-    Shared,
-    ~[heap~]
-    Vec,
-    //#[Default]
-    Any
 }
 
 /// Abstracted slice storage/access.
@@ -698,74 +690,77 @@ macro_rules! slice_storage_impl {
         }
 
         with_heap! {
-        fn from_vec(vector: Vec<T>) -> Self {
-            // Since N is const, this assert may be optimized away.
-            #[cfg(feature = "size_for_array_only")]
-            assert_eq!(N, 0);
-            Self::Vec(vector)
+            fn from_vec(vector: Vec<T>) -> Self {
+                // Since N is const, this assert may be optimized away.
+                #[cfg(feature = "size_for_array_only")]
+                assert_eq!(N, 0);
+                Self::Vec(vector)
+            }
         }
-
-        fn from_vec_ref(vector: &'a mut Vec<T>) -> Self {
-            Self::VecRef(vector)
-        }
+        with_heap! {
+            fn from_vec_ref(vector: &'a mut Vec<T>) -> Self {
+                Self::VecRef(vector)
+            }
         }
         fn from_value_to_array(value_ref: &'a T) -> Self {
             Self::Array($copy_or_clone_to_array(value_ref))
         }
 
         with_heap! {
-        fn from_value_to_vec(value: &'a T, size: usize) -> Self {
-            let mut vec = Vec::with_capacity(size);
-            for _ in 0..size {
-                vec.push($copy_or_clone_value(value));
+            fn from_value_to_vec(value: &'a T, size: usize) -> Self {
+                let mut vec = Vec::with_capacity(size);
+                for _ in 0..size {
+                    vec.push($copy_or_clone_value(value));
+                }
+                Self::Vec(vec)
             }
-            Self::Vec(vec)
-        }
         }
         fn from_iter_to_array(mut iter: impl Iterator<Item = T>) -> Self {
             Self::Array(fn_to_array(|| iter.next().unwrap()))
         }
         with_heap! {
-        fn from_iter_to_vec(iter: impl Iterator<Item = T>) -> Self {
-            Self::Vec(iter.collect::<Vec<_>>())
-        }
+            fn from_iter_to_vec(iter: impl Iterator<Item = T>) -> Self {
+                Self::Vec(iter.collect::<Vec<_>>())
+            }
         }
 
         fn from_fn_to_array(f: impl FnMut() -> T) -> Self {
             Self::Array(fn_to_array(f))
         }
         with_heap! {
-        fn from_fn_to_vec(mut f: impl FnMut() -> T, size: usize) -> Self {
-            Self::Vec((0..size).map(|_| f()).collect::<Vec<_>>())
-        }
-
-        /// Return `self` if `Vec`-based, otherwise a new `Vec`-based instance populated from `self`.
-        fn to_vec_based(self) -> Self {
-            match self {
-                Self::Shared(slice) => Self::Vec(slice.iter().cloned().collect::<Vec<_>>()),
-                Self::Mutable(mutable) => Self::Vec(mutable.iter().cloned().collect::<Vec<_>>()),
-                Self::Array(arr) => Self::Vec(arr.iter().cloned().collect::<Vec<_>>()),
-                Self::Vec(_) => self,
-                Self::VecRef(_) => self,
+            fn from_fn_to_vec(mut f: impl FnMut() -> T, size: usize) -> Self {
+                Self::Vec((0..size).map(|_| f()).collect::<Vec<_>>())
             }
         }
-
-        fn to_non_array_vec_based(&self) -> Self::NARR {
-            let v: Vec<T>;
-            if let Self::Mutable(mutable_slice) = self {
-                v = Vec::from_iter(mutable_slice.iter().cloned());
-            } else {
-                let slice = match self {
-                    Self::Array(array) => array,
-                    Self::Shared(shared_slice) => *shared_slice,
-                    Self::Vec(vec) => vec,
-                    Self::VecRef(vec_ref) => *vec_ref,
-                    _ => unreachable!(),
-                };
-                v = Vec::from_iter(slice.iter().cloned());
+        with_heap! {
+            /// Return `self` if `Vec`-based, otherwise a new `Vec`-based instance populated from `self`.
+            fn to_vec_based(self) -> Self {
+                match self {
+                    Self::Shared(slice) => Self::Vec(slice.iter().cloned().collect::<Vec<_>>()),
+                    Self::Mutable(mutable) => Self::Vec(mutable.iter().cloned().collect::<Vec<_>>()),
+                    Self::Array(arr) => Self::Vec(arr.iter().cloned().collect::<Vec<_>>()),
+                    Self::Vec(_) => self,
+                    Self::VecRef(_) => self,
+                }
             }
-            Self::NARR::Vec(v)
         }
+        with_heap! {
+            fn to_non_array_vec_based(&self) -> Self::NARR {
+                let v: Vec<T>;
+                if let Self::Mutable(mutable_slice) = self {
+                    v = Vec::from_iter(mutable_slice.iter().cloned());
+                } else {
+                    let slice = match self {
+                        Self::Array(array) => array,
+                        Self::Shared(shared_slice) => *shared_slice,
+                        Self::Vec(vec) => vec,
+                        Self::VecRef(vec_ref) => *vec_ref,
+                        _ => unreachable!(),
+                    };
+                    v = Vec::from_iter(slice.iter().cloned());
+                }
+                Self::NARR::Vec(v)
+            }
         }
 
         // Accessors
@@ -796,15 +791,15 @@ macro_rules! slice_storage_impl {
         }
 
         with_heap! {
-        fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<T> {
-            match self {
-                Self::Vec(vec) => vec,
-                Self::VecRef(vec_ref) => *vec_ref,
-                _ => {
-                    unimplemented!("Works for Vec and VecRef only.")
+            fn mutable_vec<'s>(&'s mut self) -> &'s mut Vec<T> {
+                match self {
+                    Self::Vec(vec) => vec,
+                    Self::VecRef(vec_ref) => *vec_ref,
+                    _ => {
+                        unimplemented!("Works for Vec and VecRef only.")
+                    }
                 }
             }
-        }
         }
     };
 }
@@ -879,13 +874,13 @@ macro_rules! slice_storage_default_impl {
             Self::Array($copy_or_clone_default())
         }
         with_heap! {
-        fn from_default_to_vec(size: usize) -> Self {
-            let mut vec = Vec::with_capacity(size);
-            for _ in 0..size {
-                vec.push(T::default());
+            fn from_default_to_vec(size: usize) -> Self {
+                let mut vec = Vec::with_capacity(size);
+                for _ in 0..size {
+                    vec.push(T::default());
+                }
+                Self::Vec(vec)
             }
-            Self::Vec(vec)
-        }
         }
     };
 }

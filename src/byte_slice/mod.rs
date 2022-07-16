@@ -109,7 +109,8 @@ where
         fn from_vec(_vector: Vec<bool>) -> Self {
             unimplemented!("Never")
         }
-
+    }
+    with_heap! {
         fn from_vec_ref(vector: &'a mut Vec<bool>) -> Self {
             unimplemented!("Never")
         }
@@ -169,7 +170,8 @@ where
         fn to_vec_based(self) -> Self {
             unimplemented!("Never")
         }
-
+    }
+    with_heap! {
         fn to_non_array_vec_based(&self) -> Self::NARR {
             ByteSliceBoolStorage {
                 byte_slice: self.byte_slice.to_non_array_vec_based(),

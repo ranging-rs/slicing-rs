@@ -24,8 +24,7 @@ fields. See more below at TODO [Crate_Features].
   build times and larger binaries. We optimize it where worthwhile.
 
 ## Requiring Nightly Rust
-As of mid 2022, we need Rust nightly (for const time generics and other language
-features). Otherwise this couldn't be so ergonomic.
+As of mid 2022, we need Rust `nightly`. Otherwise this couldn't be so ergonomic.
 
 ## Supporting no_std
 We test building for several of more supported (tier 2) `no_std` Rust targets.

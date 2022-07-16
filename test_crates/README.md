@@ -9,7 +9,7 @@ Various `std` and `no_std` test crates re-use parts of [slicing_any_std](slicing
 
 ## no_std test crates
 `no_std` integration tests in have project names
-- starting with `slicing_no_std_basic_`: with no `Vec` (`core::collections::Vec), or
+- starting with `slicing_no_std_bare_`: with no `Vec` (`core::collections::Vec), or
 - starting with `slicing_no_std_vec_`: with `Vec` (`core::collections::Vec`), and
 - ending with `_build`: for testing build only, or
 - ending with `_run`: for running tests only (as if in `no_std`, but using your default target).
