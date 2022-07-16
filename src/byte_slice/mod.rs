@@ -75,7 +75,9 @@ where
     type ITER<'s> = ByteSliceBoolIter<'s>
     where Self: 's;
 
-    type NARR = ByteSliceBoolStorage<'a, 0>;
+    with_heap! {
+        type NARR = ByteSliceBoolStorage<'a, 0>;
+    }
 
     fn get(&self, index: usize) -> bool {
         let byte = self.byte_slice.get(index / 8);

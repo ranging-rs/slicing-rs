@@ -103,10 +103,10 @@ macro_rules! enum_cfg {
 }
 
 /// Conditionally compile - only if heap is supported. Do not group statements!
-/// Instead,either use a separate invocation per each statement/definition -
-/// like `fn`, or put a sequence of statements inside an inner block `{...`} In
-/// places where we can't use this macro, such as conditionally compiling
-/// branches of a `match` statement, we use
+/// Instead, either use a separate macro invocation per each
+/// statement/definition, or put a sequence of statements inside an inner block
+/// `{...`}. In places where we can't use this macro, such as conditionally
+/// compiling branches of a `match` statement, we use
 /// ```
 /// #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
 /// {} // a statement here
@@ -123,9 +123,21 @@ macro_rules! with_heap {
     }
 }
 
+#[macro_export]
+macro_rules! with_std {
+    (
+        $($item:tt)*
+    ) => {
+        #[cfg(not(feature = "no_std"))]
+        $($item)*
+    }
+}
+
 /// Helper that generates code shared between various Slice traits.
 /// Non-hygienic, of course.
-// Purpose of separation from slice_trait_with_narr_size: When `disable_empty_arrays` feature is enabled, this makes `NARR` not be an array with 0 items (which would fail), but with one item.
+// Purpose of separation from slice_trait_with_narr_size: When
+// `disable_empty_arrays` feature is enabled, this makes `NARR` not be an array
+// with 0 items (which would fail), but with one item.
 macro_rules! slice_trait {
     ($trait_name:ident) => {
         #[cfg(not(feature = "disable_empty_arrays"))]
@@ -135,31 +147,36 @@ macro_rules! slice_trait {
     };
 }
 
-/// Workaround Rust's limitations on NARR's size parameter and its bounds.
-/// See https://github.com/ranging-rs/slicing-rs/issues/1
+/// Workaround Rust's limitations on NARR's size parameter and its bounds. See
+/// https://github.com/ranging-rs/slicing-rs/issues/1
 macro_rules! slice_trait_with_narr_size {
     ($trait_name:ident, $narr_size:expr) => {
         type ITER<'i>: Iterator<Item = &'i T> = core::slice::Iter<'i, T> where T: 'i, Self: 'i;
 
-        /// Like Self, but with size 0. `NARR` means NON_ARRAY. It serves for
-        /// conversion functions that return or accept the same Slice
-        /// implementation type as `Self` but with size 0. There's no way, and
-        /// no need, to correlate `NARR` and `Self` here any closer (even though
-        /// those types are related). It's the semantics/ convention that
-        /// matters. (The actual implementation type will define `NARR` as
-        /// itself but with size 0.)
-        type NARR: $trait_name<'a, T, $narr_size>;
+        with_heap!{
+            /// Like Self, but with size 0. `NARR` means NON_ARRAY. It serves
+            /// for conversion functions that return or accept the same Slice
+            /// implementation type as `Self` but with size 0. There's no way,
+            /// and no need, to correlate `NARR` and `Self` here any closer
+            /// (even though those types are related). It's the semantics/
+            /// convention that matters. (The actual implementation type will
+            /// define `NARR` as itself but with size 0.)
+            type NARR: $trait_name<'a, T, $narr_size>;
+        }
 
         fn get(&self, index: usize) -> T;
-        /// Set the value. Return true if this value was not present. (Like std::collections::HashSet.)
+        /// Set the value. Return true if this value was not present. (Like
+        /// std::collections::HashSet.)
         fn check_and_set(&mut self, index: usize, value: &T) -> bool;
         /// Set the value.
         fn set(&mut self, index: usize, value: &T);
         fn iter<'s>(&'s self) -> Self::ITER<'s>;
 
-        // Constructor that doesn't transfer an array, but it transfers its slice.
+        // Constructor that doesn't transfer an array, but it transfers its
+        // slice.
         fn from_shared(slice: &'a [T]) -> Self;
-        // Constructor that doesn't transfer an array, but it transfers its slice.
+        // Constructor that doesn't transfer an array, but it transfers its
+        // slice.
         fn from_mutable(slice: &'a mut [T]) -> Self;
         /// Array ownership transfer constructor.
         fn from_array(array: [T; N]) -> Self;
@@ -187,12 +204,12 @@ macro_rules! slice_trait_with_narr_size {
         }
 
         with_heap! {
-            /// Non-transfer constructor mutably referring to a given `vector`. It transfers
-            /// ownership of the (mutable) reference itself.
-            /// The only benefit of this function, as compared to `from_mutable_slice`,
-            /// is that we can call `mutable_vec` on this instance.
-            /// This function doesn't need a shared/immutable alternative - for that
-            /// use simple `from_shared`.
+            /// Non-transfer constructor mutably referring to a given `vector`.
+            /// It transfers ownership of the (mutable) reference itself. The
+            /// only benefit of this function, as compared to
+            /// `from_mutable_slice`, is that we can call `mutable_vec` on this
+            /// instance. This function doesn't need a shared/immutable
+            /// alternative - for that use simple `from_shared`.
             fn from_vec_ref(vector: &'a mut Vec<T>) -> Self;
         }
 
@@ -283,8 +300,9 @@ macro_rules! slice_trait_default {
         /// Copy to a new array and create an instance with it.
         fn to_array_based(&self) -> Self;
 
-        /// Param `size` is used only if `storage_type == SliceBackedChoice::Vec`.
-        /// Param `storage_type` can be only for "owned" choices (Array/BoxArray/Vec).
+        /// Param `size` is used only if `storage_type ==
+        /// SliceBackedChoice::Vec`. Param `storage_type` can be only for
+        /// "owned" choices (Array/BoxArray/Vec).
         fn from_default(size: usize, storage_type: SliceBackedChoice) -> Self
         where
             Self: Sized,
@@ -303,8 +321,8 @@ macro_rules! slice_trait_default {
     };
 }
 
-//@TODO in `Set` module/structs: `no_std` friendly:
-//use alloc::collections::BTreeMap;
+//@TODO in `Set` module/structs: `no_std` friendly: use
+//alloc::collections::BTreeMap;
 
 /** Check that given `N` is non-zero if crate feature `disable_empty_arrays` is
  *  enabled. Otherwise panic.
@@ -426,24 +444,24 @@ where
 }
 
 /// Slice/array/vector-based container, with extra abstractions. You can use it
-/// on its own.
-/// The extra abstractions also make it compatible with (limited and adapted)
-/// hash set/hash map. Slice or hash set/hash then serve as pluggable in
-/// (range-based) `ranging::byte_slice::ByteSliceBoolStorage` and as
+/// on its own. The extra abstractions also make it compatible with (limited and
+/// adapted) hash set/hash map. Slice or hash set/hash then serve as pluggable
+/// in (range-based) `ranging::byte_slice::ByteSliceBoolStorage` and as
 /// implementations of `ranging::set::Set` and `ranging::map::Map`.
 ///
-/// If array-based, the size is fixed at compile time through a const generic param `N`.
-/// If slice-based or vec-based, its size can be any, as given at runtime. But for shared/mutable slice-based instances the size is fixed at instantiation.
-/// Vec-based instances can be resized.
+/// If array-based, the size is fixed at compile time through a const generic
+/// param `N`. If slice-based or vec-based, its size can be any, as given at
+/// runtime. But for shared/mutable slice-based instances the size is fixed at
+/// instantiation. Vec-based instances can be resized.
 ///
 /// # Array size-related crate features
-/// Param `N` indicates array size for SliceStorage::Array. It applies
-/// depending on crate features `size_for_array_only`, `allow_empty_arrays` and
+/// Param `N` indicates array size for SliceStorage::Array. It applies depending
+/// on crate features `size_for_array_only`, `allow_empty_arrays` and
 /// `disable_empty_arrays`.
 ///
 /// # size_for_array_only
-/// `size_for_array_only` in short: If `size_for_array_only` is enabled and
-/// size `N` is non-zero, we allow SliceStorage::Array` variant only.
+/// `size_for_array_only` in short: If `size_for_array_only` is enabled and size
+/// `N` is non-zero, we allow SliceStorage::Array` variant only.
 ///
 /// In detail:
 ///
@@ -454,12 +472,12 @@ where
 /// variant only. And we forbid (at runtime) use of any other `SliceStorage`
 /// variants (`SliceStorage::Shared`...) for non-zero `N`. (Even though this
 /// check is specified for runtime, that is only due to Rust language
-/// limitations. The check, if complied with, is likely to be optimized away
-/// at compile time.)
+/// limitations. The check, if complied with, is likely to be optimized away at
+/// compile time.)
 ///  
 /// That prevents us from wasting memory (and possibly fragmenting CPU caches).
-/// However, we have to type all non-array variants as having `N = 0`, and
-/// hence we can't assign/pass those non-array variants to an array variant.
+/// However, we have to type all non-array variants as having `N = 0`, and hence
+/// we can't assign/pass those non-array variants to an array variant.
 ///
 /// - if `size_for_array_only` is disabled, we allow any variants of
 /// `SliceStorage` (as applicable to the choice of `std` or `no_std`). That
@@ -470,9 +488,9 @@ where
 /// variant.
 ///
 /// - if `size_for_array_only` is enabled, we forbid (runtime) use of
-///  `SliceStorage::Array` (with that `N = 0`). Use
-/// slice/vector-based variants of `SliceStorage` (`SliceStorage::Shared`...,
-///  `SliceStorage::Vec`...) instead.
+///  `SliceStorage::Array` (with that `N = 0`). Use slice/vector-based variants
+/// of `SliceStorage` (`SliceStorage::Shared`..., `SliceStorage::Vec`...)
+///  instead.
 ///
 /// - if `size_for_array_only` is disabled, we allow array storage with size `0`
 /// (for `SliceStorage::Array`) and we allow all other variants (as applicable
@@ -480,16 +498,16 @@ where
 ///
 /// # Usage in library crates & size_for_array_only
 /// ## Make it flexible
-/// - use non-zero `N` only for array-based purposes (often on stack, or
-///   in `no_std`). Otherwise use zero `N` for code pathways based on a
+/// - use non-zero `N` only for array-based purposes (often on stack, or in
+///   `no_std`). Otherwise use zero `N` for code pathways based on a
 ///   slice/vector.
 /// - if you see frequent code pathways that copy/clone `Slice`s, and if you
 ///   have heap, consider `to_non_array_vec_based()`.
 /// - check with `is_owned()` and have two pathways, if simple enough
 /// - use `to_*()` methods.
 ///
-/// Don't hard code any non-zero `N` (unless sure), but have it come from
-/// the client.
+/// Don't hard code any non-zero `N` (unless sure), but have it come from the
+/// client.
 ///
 /// ## Test
 /// Ship your crate without enabling `size_for_array_only`, but test it both
@@ -509,12 +527,11 @@ where
 /// globally. It applies to any implementations of Slice* traits and
 /// SliceStorage* and related structs/enums.
 ///
-/// `Slice` (and it implementations) have `const N: usize` and not
-/// `const N: Option<usize>`. The later (or a similar custom enum) would allow
-/// granular (per generic type instance) intent as to whether the specific type
-/// (for its chosen `N`) allows arrays of the given size
-/// (whether zero or not), or whether it disables its array-based variant
-/// completely.
+/// `Slice` (and it implementations) have `const N: usize` and not `const N:
+/// Option<usize>`. The later (or a similar custom enum) would allow granular
+/// (per generic type instance) intent as to whether the specific type (for its
+/// chosen `N`) allows arrays of the given size (whether zero or not), or
+/// whether it disables its array-based variant completely.
 ///
 /// However, that would require extra bounds like `where [(); N.unwrap_or(0)]:`,
 /// not only in the `trait`s and `struct`s & `impl`, but also in any client
@@ -528,12 +545,13 @@ where
 /// allowed by default.
 ///
 /// # Naming convention for methods:
-/// - `as_***()` means conversion (sharing), but not a copy - TODO reconsider & implement
+/// - `as_***()` means conversion (sharing), but not a copy - TODO reconsider &
+///   implement
 /// - `to_***()` means a copy (NOT currently; TODO reconsider).
 
 /// If `T` is `Copy`, use `Slice` instead of `SliceClone`. See also
-/// `SliceStorageClone` and
-/// `SliceStorage` for reasoning on why they are named so.
+/// `SliceStorageClone` and `SliceStorage` for reasoning on why they are named
+/// so.
 pub trait SliceClone<'a, T: 'a + Clone + PartialEq, const N: usize>
 where
     Self: 'a,
@@ -644,7 +662,9 @@ macro_rules! slice_storage_impl {
         type ITER<'i> = core::slice::Iter<'i, T>
             where T: 'i, Self: 'i;
 
-        type NARR = $enum_name<'a, T, 0>;
+        with_heap!{
+            type NARR = $enum_name<'a, T, 0>;
+        }
 
         fn get(&self, index: usize) -> T {
             self.shared_slice()[index].clone()
@@ -676,8 +696,8 @@ macro_rules! slice_storage_impl {
             Self::Mutable(slice)
         }
         fn from_array(array: [T; N]) -> Self {
-            // debug (non-optimized build)-only check is enough, because we
-            // also have a compile-time check by bounds.
+            // debug (non-optimized build)-only check is enough, because we also
+            // have a compile-time check by bounds.
             #[cfg(feature = "disable_empty_arrays")]
             debug_assert!(N > 0);
             Self::Array(array)
@@ -727,7 +747,8 @@ macro_rules! slice_storage_impl {
             }
         }
         with_heap! {
-            /// Return `self` if `Vec`-based, otherwise a new `Vec`-based instance populated from `self`.
+            /// Return `self` if `Vec`-based, otherwise a new `Vec`-based
+            /// instance populated from `self`.
             fn to_vec_based(self) -> Self {
                 match self {
                     // @TODO Vec::with_capacity <- slice.len: --\\
@@ -857,8 +878,8 @@ fn clone_array_default<T: Clone + Default, const N: usize>() -> [T; N] {
 macro_rules! slice_storage_default_impl {
     ($copy_or_clone_from_slice: ident, $copy_or_clone_array: ident, $copy_or_clone_default: ident) => {
         fn to_array_based(&self) -> Self {
-            // debug (non-optimized build)-only check is enough, because we
-            // also have a compile-time check by bounds.
+            // debug (non-optimized build)-only check is enough, because we also
+            // have a compile-time check by bounds.
             #[cfg(feature = "disable_empty_arrays")]
             debug_assert!(N > 0);
 
@@ -922,7 +943,9 @@ impl<'a, T: 'a + Clone + PartialEq + Default, const N: usize> SliceDefaultClone<
 
 macro_rules! slice_storage_impl_clone {
     () => {
-        /// Implemented for Array-backed and Vec-backed SliceStorage only. For Vec (mutable) reference-backed SliceStorage this creates a new, owned Vec-based instance.
+        /// Implemented for Array-backed and Vec-backed SliceStorage only. For
+        /// Vec (mutable) reference-backed SliceStorage this creates a new,
+        /// owned Vec-based instance.
         fn clone(&self) -> Self {
             match_cfg! {self,
                 Self::Shared(_) => {
@@ -961,7 +984,8 @@ impl<'a, T: 'a + Clone + PartialEq + Default, const N: usize> Clone
 
 macro_rules! slice_storage_newlike_impl {
     ($copy_or_clone_default: ident) => {
-        /// Implemented for Shared-backed, Array-backed and Vec-backed (but not VecRef-backed) variants only.
+        /// Implemented for Shared-backed, Array-backed and Vec-backed (but not
+        /// VecRef-backed) variants only.
         fn new_empty_like(&self) -> Self {
             match_cfg! {self,
                 Self::Shared(slice) => Self::Shared(slice),
