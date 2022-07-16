@@ -3,7 +3,12 @@ pub mod bool_slice {
     use slicing::slices::BoolSlice;
     use slicing::slices::SliceDefault;
     use slicing::slices::SliceStorageDefault;
-    // If this module were in the file of its parent module, do NOT have the following three at the parent module's level. Otherwise macro vec![] would not resolve! (Even more confusing: If you did have `use alloc::vec::Vec` in at the parent module level in the same file, struct `Vec` would resolve here (at the child module level) - unlike `vec![]`, which would not resolve here.)
+    // If this module were in the file of its parent module, do NOT have the
+    // following three at the parent module's level. Otherwise macro vec![]
+    // would not resolve! (Even more confusing: If you did have `use
+    // alloc::vec::Vec` at the parent module level in the same file, struct
+    // `Vec` would resolve here (at the child module level) - unlike `vec![]`,
+    // which would not resolve here.)
     #[cfg(feature = "no_std_vec")]
     extern crate alloc;
     #[cfg(feature = "no_std_vec")]

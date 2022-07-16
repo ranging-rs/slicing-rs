@@ -1,5 +1,5 @@
 [package]
-name = "slicing_no_std_vec_run"
+name = "slicing_no_std_heap_run"
 version = "0.1.0"
 edition = "2021"
 

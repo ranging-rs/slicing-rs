@@ -247,21 +247,13 @@ macro_rules! slice_trait_with_narr_size {
             fn from_fn_to_vec(f: impl FnMut() -> T, size: usize) -> Self;
         }
 
-        // Reference/link-based OR Copy? constructors. Ever needed? Couldn't we just pass a shared/mutable reference to the existing Slice instance?
-        /*fn to_shared_based<'s>(&'s self) -> Self
-        fn to_mutable_based<'s>(&'s mut self) -> Self
-        */
-
-        /// Replace with the same or a new vec-based instance.
         with_heap! {
+            /// Replace with the same or a new vec-based instance.
             fn to_vec_based(self) -> Self;
         }
 
-        // Copy constructors.
-        // Again, any need for the following? Couldn't we just pass a &mut to the existing (vec-based) Slice instance?
-        // fn to_vec_ref_based(&mut self) -> Self
-
         with_heap! {
+            // Copy constructor.
             fn to_non_array_vec_based(&self) -> Self::NARR;
         }
 
@@ -548,6 +540,10 @@ where
 
 enum_cfg! {
     (
+        /// Indicate the storage choice. There is no "BoxedArray" invariant,
+        /// because hving a `Box` of an array would mean either wasting the
+        /// unboxed array invariant's space, or introducing another const
+        /// generic parameter (which would make it much less ergonomic).
         #[derive(Debug, PartialEq)]
         pub enum SliceBackedChoice
     ),
@@ -571,6 +567,10 @@ impl SliceBackedChoice {
             ~[heap~]
             Vec => true
         }
+    }
+
+    pub fn is_array(&self) -> bool {
+        matches!(self, Self::Array)
     }
 }
 
@@ -823,6 +823,7 @@ macro_rules! slice_storage_default_impl {
             // also have a compile-time check by bounds.
             #[cfg(feature = "disable_empty_arrays")]
             debug_assert!(N > 0);
+            
             match_cfg! {self,
                 Self::Array(from) => {
                     let to = $copy_or_clone_array(from);

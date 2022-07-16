@@ -91,7 +91,7 @@ where
         old_byte != new_byte
     }
     fn iter<'s>(&'s self) -> Self::ITER<'s> {
-        ByteSliceBoolIter::new(self.byte_slice.iter())
+        Self::ITER::new(self.byte_slice.iter())
     }
 
     // Ownership transfer constructors. Supposed to be in-place/copy = fast, but that's not possible from bool-based input - hence never to be implemented.
@@ -164,17 +164,19 @@ where
     }
 
     fn to_array_based(&self) -> Self {
-        unimplemented!("Never")
+        unimplemented!("Never. TODO reconsider.")
     }
 
     with_heap! {
         fn to_vec_based(self) -> Self {
-            unimplemented!("Never")
+            Self {
+                byte_slice: self.byte_slice.to_vec_based(),
+            }
         }
     }
     with_heap! {
         fn to_non_array_vec_based(&self) -> Self::NARR {
-            ByteSliceBoolStorage {
+            Self::NARR {
                 byte_slice: self.byte_slice.to_non_array_vec_based(),
             }
         }

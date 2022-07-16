@@ -1,10 +1,11 @@
+// @TODO remove & cleanup later
+#![allow(unused)]
+//
 // Comment out the following line during development, so you spot unlinked URLs.
 // Then uncomment it back, so that the inclusion of README.md doesn't generate a
 // warning.
 #![allow(rustdoc::bare_urls)]
 #![doc = include_str!("../README.md")]
-// @TODO remove & cleanup later
-//#![allow(unused)]
 //
 #![cfg_attr(feature = "no_std", no_std)]
 //

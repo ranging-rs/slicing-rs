@@ -1,3 +1,5 @@
+<!-- Test this both at GitHub (like https://github.com/ranging-rs/slicing-rs)
+     and at `cargo doc`-generated docs. -->
 # Purpose
 Abstracted slices and slice-likes types in Rust.
 
@@ -41,7 +43,8 @@ https://doc.rust-lang.org/nightly/rustc/platform-support.html#tier-2.
 - libraries can use `no_std_vec` feature for `Vec`-based functionality, and
   `std` for full functionality (including `HashMap`-based) with conditional
   compilation (controlled by their features). Then such libraries can be used in
-  either `std` or `no_std` projects.
+  either `std` or `no_std` projects. You can also use macros `with_heap,
+  enum_cfg, match_cfg` if your crate also defines those feature names.
 
 ## Array size features
 See features in [Cargo.toml](./Cargo.toml) and their respective
