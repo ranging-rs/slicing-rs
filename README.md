@@ -16,7 +16,7 @@ existing API's. Hence, we implement it directly for `std::collections::HashMap`
 (when using `std` feature). That makes it work for any application that uses
 `HashMap` - easier to use. -- `size_for_array_only`, `allow_empty_arrays`,
 `disable_empty_arrays` are crate features, rather than per-struct or per-object
-fields. See more below at TODO [Crate_Features].
+fields. See more below at [Crate Features](#crate-features).
 
 ## API and source
 - Generic: Generics, constant generic parameters and associated generic types
@@ -45,7 +45,7 @@ https://doc.rust-lang.org/nightly/rustc/platform-support.html#tier-2.
 
 ## Array size features
 See features in [Cargo.toml](./Cargo.toml) and their respective
-[test_crates](test_crates).
+[test_crates](https://github.com/ranging-rs/slicing-rs/tree/main/test_crates).
 
 # Module name (and hence full qualified name) conventions
 Some full qualified trait/struct/module names repeat their parts. Better have
