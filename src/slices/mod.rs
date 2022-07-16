@@ -475,15 +475,15 @@ where
 /// (for `SliceStorage::Array`) and we allow all other variants (as applicable
 /// according to `std` or `no_std`), too.
 ///
-/// # library crates & size_for_array_only
+/// # Usage in library crates & size_for_array_only
 /// ## Make it flexible
-/// - use given non-zero `N` only for array-based purposes (often on stack, or
+/// - use non-zero `N` only for array-based purposes (often on stack, or
 ///   in `no_std`). Otherwise use zero `N` for code pathways based on a
 ///   slice/vector.
 /// - if you see frequent code pathways that copy/clone `Slice`s, and if you
 ///   have heap, consider `to_non_array_vec_based()`.
-/// - check with `is_owned()`
-/// - use as_* methods (if we have them - TODO).
+/// - check with `is_owned()` and have two pathways, if simple enough
+/// - use `to_*()` methods.
 ///
 /// Don't hard code any non-zero `N` (unless sure), but have it come from
 /// the client.
@@ -526,7 +526,7 @@ where
 ///
 /// # Naming convention for methods:
 /// - `as_***()` means conversion (sharing), but not a copy - TODO reconsider & implement
-/// - `to_***()` means a copy.
+/// - `to_***()` means a copy (NOT currently; TODO reconsider).
 
 /// If `T` is `Copy`, use `Slice` instead of `SliceClone`. See also
 /// `SliceStorageClone` and
@@ -586,6 +586,8 @@ macro_rules! slice_storage_enum {
     ($enum_name:ident, $($item_bounds:tt)+) => {
         enum_cfg! {
             (
+                /// See also [SliceStorage and
+                /// similar](../index.html#slicestorage-and-similar).
                 #[derive(Debug)]
                 pub enum $enum_name<'a, T: 'a + $($item_bounds)+, const N: usize>
             ),
@@ -605,25 +607,6 @@ macro_rules! slice_storage_enum {
     }
 }
 
-/// Abstracted slice storage/access.
-/// Const generic param `N` is used by `SliceStorage::Array` and `SliceStorage::BoxArray` invariants only. However, it makes all variants consume space. Hence `N > 0` is suggested primarily for no-heap or frequent instantiation on stack and for small sizes (`N`).
-/// If you run with heap, and you have infrequent instantiation or large sizes (`N`), suggest passing 0 for `N`, and use `SliceStorage::Vec` or `SliceStorage::BoxArray` instead.
-///
-/// Why don't we call this to `SliceStorageCopy` instead of `SliceStorage` and why don't we
-/// rename the existing `SliceStorageClone`
-/// to `SliceStorage`? It could lead to laziness/
-/// not noticing/forgetting to use `SliceStorageCopy` whenever possible.
-/// Especially so because then any `Copy` type could be stored in either
-/// `SliceStorage` or `SliceStorageCopy`. Storing `Copy` in Clone-friendly
-/// storage would work, but it would be less efficient than storing it in a
-/// specialized `Copy` storage. Even more so with default values (which, if
-/// primitive and if stored in specialized `Copy` storage, could be
-/// optimized away - so the
-/// virtual memory wouldn't be used until written to it later).
-/// However, if we have `SliceStorage` work for `Copy` only, then it's unlikely
-/// that anyone would use it for `Clone` types (even though they could). And we
-/// have `SliceStorageClone` for `Clone` types.
-//pub enum SliceStorage<'a, T: 'a, const N: usize>
 slice_storage_enum!(SliceStorage, Clone + Copy);
 slice_storage_enum!(SliceStorageClone, Clone);
 slice_storage_enum!(SliceStorageDefault, Clone + Copy + Default);
@@ -648,7 +631,7 @@ fn fn_to_array<T: Clone, const N: usize>(mut f: impl FnMut() -> T) -> [T; N] {
 macro_rules! slice_storage_impl {
     ($enum_name:ident, $copy_or_clone_value: ident, $copy_or_clone_to_array: ident) => {
         type ITER<'i> = core::slice::Iter<'i, T>
-                                                                        where T: 'i, Self: 'i;
+            where T: 'i, Self: 'i;
 
         type NARR = $enum_name<'a, T, 0>;
 
@@ -755,7 +738,7 @@ macro_rules! slice_storage_impl {
                         Self::Shared(shared_slice) => *shared_slice,
                         Self::Vec(vec) => vec,
                         Self::VecRef(vec_ref) => *vec_ref,
-                        _ => unreachable!(),
+                        Self::Mutable(_) => unreachable!(),
                     };
                     v = Vec::from_iter(slice.iter().cloned());
                 }

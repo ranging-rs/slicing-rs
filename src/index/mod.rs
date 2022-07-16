@@ -23,7 +23,7 @@ pub struct RangeIndexer<T: Clone> {
     start_index: usize,
 }
 /// Default implementation for primitive unsigned/signed integers.
-/// In nightly Rust as of early 2022, this works for `char`, too - `char` implements `Sub<char>`, even though that doesn't show up at https://doc.rust-lang.org/nightly/std/primitive.char.html.
+/// In nightly Rust as of early 2022, this works for `char`, too - `char` implements `Sub<char>`, even though that doesn't show up at <https://doc.rust-lang.org/nightly/std/primitive.char.html>.
 impl<T: Clone + Sub<T>> Indexer<T> for RangeIndexer<T>
 where
     T: TryInto<usize>,
@@ -35,7 +35,7 @@ where
     <T as TryInto<usize>>::Error: fmt::Debug,
 {
     fn index(&self, key: &T) -> usize {
-        // An alternative: key.clone().try_into().expect(...) - self.start_index. @TODO Unsure about default implementation for `char`.
+        // An alternative: key.clone().try_into().expect(...) - self.start_index. Unsure about default implementation for `char`.
         // However, the current implementation would work on 16 bit platforms, too,
         // while using key.clone.try_into().expect(...) - self.start_index would not!
         (key.clone() - self.start_key.clone())

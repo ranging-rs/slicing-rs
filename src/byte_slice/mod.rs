@@ -1,6 +1,6 @@
 use crate::abstra::NewLike;
 use crate::slices::{ByteSlice, SliceBackedChoice, SliceDefault};
-use crate::{match_cfg, with_heap};
+use crate::with_heap;
 #[cfg(feature = "no_std_vec")]
 extern crate alloc;
 #[cfg(feature = "no_std_vec")]
@@ -16,6 +16,7 @@ pub const fn num_bits_to_bytes(num_bits: usize) -> usize {
     }
 }
 
+/// "Packed" bit storage. Store and access bits in byte-based backing storage.
 #[derive(Clone)]
 pub struct ByteSliceBoolStorage<'a, const N: usize>
 where
@@ -94,7 +95,7 @@ where
     }
 
     // Ownership transfer constructors. Supposed to be in-place/copy = fast, but that's not possible from bool-based input - hence never to be implemented.
-    // @TODO Consider: NO ownership transfer, but pass a reference, and transform into a (packed) byte slice.
+    // @TODO Consider also: NO ownership transfer, but pass a reference, and transform into a (packed) byte slice.
     fn from_shared(_slice: &'a [bool]) -> Self {
         unimplemented!("Never")
     }

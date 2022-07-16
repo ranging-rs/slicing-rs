@@ -51,3 +51,26 @@ See features in [Cargo.toml](./Cargo.toml) and their respective
 Some full qualified trait/struct/module names repeat their parts. Better have
 more granular module paths, and some name repetition in file paths and module
 names (like `slices::bool_slice`), rather than long (source) files).
+
+# SliceStorage and similar
+These data-carrying enums are: `SliceStorage, SliceStorageClone,
+SliceStorageDefault, SliceStorageDefaultClone`. They provide storage and
+abstracted access and transformations.
+
+Const generic param `N` is used by `Array` invariant only. However, it makes all
+variants consume space. Hence `N > 0` is suggested primarily for no-heap or
+frequent instantiation on stack and for small sizes (`N`). If you run with heap,
+and you have infrequent instantiation and/or large sizes, suggest passing `0`
+for `N`, and use `Vec` invariant instead.
+
+Why don't we call this to `SliceStorageCopy` instead of `SliceStorage` and why
+don't we rename the existing `SliceStorageClone` to `SliceStorage`? It could
+lead to laziness/not noticing/forgetting to use `SliceStorageCopy` whenever
+possible. Especially so because then any `Copy` type could be stored in either
+`SliceStorage` or `SliceStorageCopy`. Storing `Copy` items in a `Clone`-friendly
+storage would work, but it would be less efficient than storing them in a
+specialized `Copy` storage. Even more so with default values (which, if
+primitive and if stored in specialized `Copy` storage, could be optimized away -
+so the virtual memory wouldn't be used until written to it later, if at all).
+However, it's unlikely that anyone would use `SliceStorageClone` for `Copy`
+items (even though they could).
