@@ -1,10 +1,11 @@
 [package]
-name = "slicing_any_std"
+name = "slicing_any_std_test"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# The following features are used from neighbor test crates:
 [features]
 std = []
 no_std = []

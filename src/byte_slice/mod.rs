@@ -17,6 +17,7 @@ pub const fn num_bits_to_bytes(num_bits: usize) -> usize {
 }
 
 /// "Packed" bit storage. Store and access bits in byte-based backing storage.
+/// See `crate::slices::SliceStorage` for const generic parameter `N`.
 #[derive(Clone)]
 pub struct ByteSliceBoolStorage<'a, const N: usize>
 where

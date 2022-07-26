@@ -570,7 +570,7 @@ where
 enum_cfg! {
     (
         /// Indicate the storage choice. There is no "BoxedArray" invariant,
-        /// because hving a `Box` of an array would mean either wasting the
+        /// because having a `Box` of an array would mean either wasting the
         /// unboxed array invariant's space, or introducing another const
         /// generic parameter (which would make it much less ergonomic).
         #[derive(Debug, PartialEq)]

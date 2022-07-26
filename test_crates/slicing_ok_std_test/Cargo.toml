@@ -1,5 +1,5 @@
 [package]
-name = "slicing_ok_std"
+name = "slicing_ok_std_test"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 slicing = { path = "../..", features = ["std"] }
 [dev-dependencies]
-slicing_any_std = { path = "../slicing_any_std" }
+slicing_any_std_test = { path = "../slicing_any_std_test", features = ["std"] }
