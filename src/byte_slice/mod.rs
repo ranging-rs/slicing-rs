@@ -5,6 +5,9 @@ use crate::with_heap;
 extern crate alloc;
 #[cfg(feature = "no_std_vec")]
 use alloc::vec::Vec;
+// TODO investigate: Both following fail for a full build (when running `cargo build` in `slicing-rs` directory)
+//use alloc::vec;
+//use alloc::vec::Vec;
 
 /// Given `num_bits`, return number of bytes required to cover all those bits.
 pub const fn num_bits_to_bytes(num_bits: usize) -> usize {

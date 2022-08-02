@@ -4,7 +4,8 @@
 
 use core::alloc::{GlobalAlloc, Layout};
 use core::panic::PanicInfo;
-
+// TODO the following fails
+//use alloc::vec;
 struct DummyAllocator {}
 
 #[global_allocator]
