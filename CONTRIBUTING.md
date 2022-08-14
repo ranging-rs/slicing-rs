@@ -6,14 +6,13 @@ related `ranging-rs` project).
 
 See also https://peter-kehl.github.io/embedded_low_level_rust.
 
-There are also test
-modules under (`slicing`'s top level) [src/](./src/). Howevever, those are for
-testing private functionality only.
+There are also test modules under (`slicing`'s top level) [src/](./src/).
+Howevever, those are for testing private functionality only.
 
-# presentation anchors in inline comments
+# Presentation anchors in inline comments
 Sections of source files are loaded by
 https://peter-kehl.github.io/embedded_low_level_rust. Instead of line numbers,
 that presentation refers to parts of the source files by strings that are
-present in code inline comments. Those comments serve as delimiters of code
-sections to present. So please leave in any Rust comments `//` or `Cargo.toml`
-comments `#` containing `presentation-`.
+present in the code in inline comments. Those comments serve as delimiters of
+code sections to present. So please leave in any Rust comments `//` or /*...*/
+or `Cargo.toml` comments `#` containing `presentation-`.

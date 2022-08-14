@@ -221,6 +221,7 @@ macro_rules! slice_trait_with_narr_size {
             match_cfg! { storage_type,
                 ~[heap~]
                 SliceBackedChoice::Array => Self::from_value_to_array(value_ref),
+                // @TODO test this - duplicate pattern?!
                 ~[std~]
                 SliceBackedChoice::Array | SliceBackedChoice::Array=> Self::from_value_to_array(value_ref),
                 _ => unimplemented!("Never")
@@ -412,6 +413,7 @@ impl<'a, T: 'a + Clone + Copy + PartialEq, ITER: Iterator<Item = T>> CollectTo<'
         }
     }
 }
+
 impl<'a, T: 'a + Clone + PartialEq, ITER: Iterator<Item = T>> CollectToClone<'a> for ITER {
     type Item = T;
     fn collect_to_clone<S: SliceClone<'a, Self::Item, N>, const N: usize>(
