@@ -9,9 +9,9 @@ pub mod bool_slice {
     // alloc::vec::Vec` at the parent module level in the same file, struct
     // `Vec` would resolve here (at the child module level) - unlike `vec![]`,
     // which would not resolve here.)
-    #[cfg(feature = "no_std_vec")]
+    #[cfg(feature = "no_std_heap")]
     extern crate alloc;
-    #[cfg(feature = "no_std_vec")]
+    #[cfg(feature = "no_std_heap")]
     use alloc::vec;
 
     /// Assert that `bool_based_slice` has same size and items as `slice`.
@@ -38,7 +38,7 @@ pub mod bool_slice {
         assert_equal_items(&(BoolSlice::<2>::from_mutable(&mut array)), &[true, false]);
         assert_equal_items(&BoolSlice::<2>::from_array(array), &[true, false]);
 
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+        #[cfg(any(not(feature = "no_std"), feature = "no_std_heap"))]
         {
             let vector = vec![true, false];
             assert_equal_items(&<BoolSlice<2>>::from_vec(vector), &[true, false]);
@@ -49,7 +49,7 @@ pub mod bool_slice {
         assert_equal_items(&BoolSlice::<1>::from_default_to_array(), &[false]);
     }
 
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_heap"))]
     pub fn from_vec_etc() {
         // Test that `SliceStorage::from_vec_new()` is empty, regardless of const generic param N.
         let mut bool_slice = BoolSlice::<0>::from_vec_new();
@@ -76,7 +76,7 @@ mod bool_slice_tests {
         super::bool_slice::new_contains_initial_false();
     }
 
-    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+    #[cfg(any(not(feature = "no_std"), feature = "no_std_heap"))]
     #[test]
     pub fn from_vec_etc() {
         super::bool_slice::from_vec_etc();

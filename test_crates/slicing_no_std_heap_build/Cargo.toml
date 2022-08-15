@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-slicing = { path = "../..", features = ["no_std", "no_std_vec"]}
-slicing_any_std_test = { path = "../slicing_any_std_test", features = ["no_std", "no_std_vec"]}
+slicing = { path = "../..", features = ["no_std", "no_std_heap"]}
+slicing_any_std_test = { path = "../slicing_any_std_test", features = ["no_std", "no_std_heap"]}
 
 [profile.dev]
 panic = "abort"

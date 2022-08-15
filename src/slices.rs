@@ -1,6 +1,6 @@
-#[cfg(feature = "no_std_vec")]
+#[cfg(feature = "no_std_heap")]
 extern crate alloc;
-#[cfg(feature = "no_std_vec")]
+#[cfg(feature = "no_std_heap")]
 use alloc::vec::Vec;
 
 use core::array;
@@ -28,7 +28,7 @@ macro_rules! match_cfg {
                     #[$meta_or_docs]
                 )*
                 $(
-                    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                    #[cfg(any(not(feature = "no_std"), feature = "no_std_heap"))]
                     ${ignore(heap_delimiter)}
                 )?
                 $(
@@ -78,7 +78,7 @@ macro_rules! enum_cfg {
                     #[$meta_or_docs]
                 )*
                 $(
-                    #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+                    #[cfg(any(not(feature = "no_std"), feature = "no_std_heap"))]
                     ${ignore(heap_delimiter)}
                 )?
                 $(
@@ -108,7 +108,7 @@ macro_rules! enum_cfg {
 /// `{...`}. In places where we can't use this macro, such as conditionally
 /// compiling branches of a `match` statement, we use
 /// ```
-/// #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))] // with_heap
+/// #[cfg(any(not(feature = "no_std"), feature = "no_std_heap"))] // with_heap
 /// {} // a statement here
 /// ```
 /// including the comment `//with_heap`, so that we can search for both usages
@@ -118,7 +118,7 @@ macro_rules! with_heap {
     (
         $($item:tt)*
     ) => {
-        #[cfg(any(not(feature = "no_std"), feature = "no_std_vec"))]
+        #[cfg(any(not(feature = "no_std"), feature = "no_std_heap"))]
         $($item)*
     }
 }

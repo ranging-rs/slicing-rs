@@ -1,9 +1,9 @@
 use crate::abstra::NewEmptyLike;
 use crate::slices::{ByteSlice, SliceBackedChoice, SliceDefault};
 use crate::with_heap;
-#[cfg(feature = "no_std_vec")]
+#[cfg(feature = "no_std_heap")]
 extern crate alloc;
-#[cfg(feature = "no_std_vec")]
+#[cfg(feature = "no_std_heap")]
 use alloc::vec::Vec;
 // TODO investigate: Both following fail for a full build (when running `cargo build` in `slicing-rs` directory)
 //use alloc::vec;

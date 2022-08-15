@@ -12,8 +12,8 @@ edition = "2021"
 std = []
 no_std = []
 
-# Whether to allow `Vec` in `no_std`. Requires `no_std`.
-no_std_vec = []
+# Whether to allow heap (`Box`, `Vec`...) in `no_std`. Requires `no_std`.
+no_std_heap = []
 
 # Whether array size `N` can be non-zero if, and only if, the client code is
 # using `SliceStorage::Array` invariant of that type (the type is `SliceStorage` with that

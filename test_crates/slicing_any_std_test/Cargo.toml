@@ -9,9 +9,11 @@ edition = "2021"
 [features]
 std = []
 no_std = []
-no_std_vec = []
+no_std_heap = []
 
 [dependencies]
+# Do not specify no_std/no_std + no_std_heap/std features. Instead, leave that
+# for the crate that consumes this.
 slicing = { path = "../.." }
 # If you do add - features = ["std"] - here temporarily, do NOT commit that:
 # ranging = { path = "../.." , features = ["std"]}
