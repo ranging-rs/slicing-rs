@@ -19,7 +19,7 @@ pub trait Indexer<T: Clone>: Clone {
 #[derive(Clone)]
 pub struct RangeIndexer<T: Clone> {
     start_key: T,
-    /// "Absolute" index respective to (value stored in_ start_key.
+    /// "Absolute" index respective to (value stored in) start_key.
     start_index: usize,
 }
 /// Default implementation for primitive unsigned/signed integers.

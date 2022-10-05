@@ -477,7 +477,7 @@ where
 /// limitations. The check, if complied with, is likely to be optimized away at
 /// compile time.)
 ///  
-/// That prevents us from wasting memory (and possibly fragmenting CPU caches).
+/// That prevents us from wasting memory (and possibly fragmenting CPU cache).
 /// However, we have to type all non-array variants as having `N = 0`, and hence
 /// we can't assign/pass those non-array variants to an array variant.
 ///
@@ -489,7 +489,7 @@ where
 /// If `N = 0`, we either allow an array of size `0`, or we disable array
 /// variant.
 ///
-/// - if `size_for_array_only` is enabled, we forbid (runtime) use of
+/// - if `size_for_array_only` is enabled, we forbid (at runtime) the use of
 ///  `SliceStorage::Array` (with that `N = 0`). Use slice/vector-based variants
 /// of `SliceStorage` (`SliceStorage::Shared`..., `SliceStorage::Vec`...)
 ///  instead.
@@ -634,6 +634,8 @@ macro_rules! slice_storage_enum {
 
             ~[heap~]
             VecRef(&'a mut Vec<T>)
+
+            // @TODO? std => HashMap-based
         }
     }
 }
